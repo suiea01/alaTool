@@ -9,6 +9,38 @@ L’application propose les catégories `ALL`, `LED`, `Captation`, `Divers`,
 validation, elle copie uniquement les dossiers choisis depuis le partage public
 Nextcloud configuré dans `config/runtime.json`.
 
+Le système de la machine (`Windows` ou `Mac`) est présélectionné et reste
+modifiable dans l’interface. Pour chaque catégorie, l’application copie d’abord
+les fichiers de `Commun`, puis ceux du système choisi. Les deux sources sont
+réunies dans le même dossier local.
+
+L’arborescence Nextcloud attendue est :
+
+```text
+Commun/
+  LED/
+  Captation/
+  Divers/
+  Switcher/
+  Média Serveur/
+Windows/
+  LED/
+  Captation/
+  Divers/
+  Switcher/
+  Média Serveur/
+Mac/
+  LED/
+  Captation/
+  Divers/
+  Switcher/
+  Média Serveur/
+```
+
+Pendant la migration, si aucun dossier `Commun`, `Windows` ou `Mac` n’est
+détecté, alaTool conserve automatiquement le fonctionnement de l’ancienne
+arborescence par catégories.
+
 Elle utilise le mode `copy` de rclone : les fichiers nouveaux ou modifiés sont
 téléchargés, mais aucun fichier local n’est supprimé. La barre de progression
 repose sur les octets réellement transférés par rclone.

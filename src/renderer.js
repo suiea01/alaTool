@@ -3,6 +3,7 @@ let server = null;
 let cancelled = false;
 let selectedFiles = [];
 let selectedCategories = [];
+let selectedPlatform = null;
 
 const $ = (id) => document.getElementById(id);
 const wait = (duration) => new Promise((resolve) => setTimeout(resolve, duration));
@@ -47,12 +48,19 @@ function selectedValues() {
     .map((input) => input.value);
 }
 
-function fileIsSelected(file, categories) {
-  if (categories.includes("ALL")) return true;
-  const topFolder = file.path.split(/[\\/]/)[0].normalize("NFC").toLocaleLowerCase("fr");
+function fileIsSelected(file, categories, platform, structured) {
+  const parts = file.path.split(/[\\/]/);
+  const source = parts[0]?.normalize("NFC");
+  const category = structured ? parts[1] : parts[0];
+  if (structured && !["Commun", platform].includes(source)) return false;
+  if (categories.includes("ALL")) return Boolean(category);
+  const normalizedCategory = category
+    ?.normalize("NFC")
+    .toLocaleLowerCase("fr");
   return categories.some(
-    (category) =>
-      category.normalize("NFC").toLocaleLowerCase("fr") === topFolder,
+    (requestedCategory) =>
+      requestedCategory.normalize("NFC").toLocaleLowerCase("fr") ===
+      normalizedCategory,
   );
 }
 
@@ -63,6 +71,7 @@ function showSelection() {
   $("title").textContent = "Quels outils souhaitez-vous télécharger ?";
   $("subtitle").textContent =
     "Sélectionnez une ou plusieurs catégories. Divers est coché par défaut.";
+  $("platformBlock").classList.remove("hidden");
   $("categoryBlock").classList.remove("hidden");
   $("progressBlock").classList.add("hidden");
   $("startButton").classList.remove("hidden");
@@ -72,12 +81,14 @@ function showSelection() {
   $("selectionError").classList.add("hidden");
 }
 
-function setRunningState(categories) {
+function setRunningState(categories, platform) {
   cancelled = false;
   document.body.classList.remove("cancelled");
   $("statusMark").classList.remove("visible");
   $("title").textContent = "Analyse des outils sélectionnés…";
-  $("subtitle").textContent = `Sélection : ${categories.includes("ALL") ? "toutes les catégories" : categories.join(", ")}.`;
+  $("subtitle").textContent =
+    `${platform} + fichiers communs · ${categories.includes("ALL") ? "toutes les catégories" : categories.join(", ")}.`;
+  $("platformBlock").classList.add("hidden");
   $("categoryBlock").classList.add("hidden");
   $("progressBlock").classList.remove("hidden");
   $("startButton").classList.add("hidden");
@@ -93,22 +104,42 @@ function setRunningState(categories) {
 
 async function startSync() {
   selectedCategories = selectedValues();
+  selectedPlatform =
+    document.querySelector('input[name="platform"]:checked')?.value ||
+    server.defaultPlatform;
   if (selectedCategories.length === 0) {
     $("selectionError").classList.remove("hidden");
     return;
   }
 
   $("selectionError").classList.add("hidden");
-  setRunningState(selectedCategories);
+  setRunningState(selectedCategories, selectedPlatform);
   log(`Connexion à ${server.serverName}`);
+  log(`Système sélectionné : ${selectedPlatform}`);
   log(`Destination sélectionnée : ${destination.path}`);
 
   try {
     const scan = await window.alaTool.scan();
     if (cancelled) return;
     selectedFiles = scan.files.filter((file) =>
-      fileIsSelected(file, selectedCategories),
+      fileIsSelected(
+        file,
+        selectedCategories,
+        selectedPlatform,
+        scan.structured,
+      ),
     );
+    const selectedSources = scan.structured
+      ? [
+          ...new Set(
+            selectedFiles
+              .map((file) => file.path.split(/[\\/]/)[0])
+              .filter((source) =>
+                ["Commun", selectedPlatform].includes(source),
+              ),
+          ),
+        ]
+      : [];
     const selectedBytes = selectedFiles.reduce(
       (sum, file) => sum + Math.max(0, file.size || 0),
       0,
@@ -139,10 +170,18 @@ async function startSync() {
     log(
       `${selectedFiles.length} fichier${selectedFiles.length > 1 ? "s" : ""} sélectionné${selectedFiles.length > 1 ? "s" : ""} — ${formatBytes(selectedBytes)}`,
     );
+    if (!scan.structured) {
+      log(
+        "Structure Nextcloud actuelle détectée : mode compatible sans filtrage du système.",
+      );
+    }
 
     await window.alaTool.sync({
       destination: destination.path,
       categories: selectedCategories,
+      platform: selectedPlatform,
+      structured: scan.structured,
+      sources: selectedSources,
     });
     if (cancelled) return;
 
@@ -199,6 +238,30 @@ async function init() {
       $("fileName").textContent = "Comparaison avec les fichiers existants";
       setProgress(0);
     }
+    if (event.type === "preflight-started") {
+      $("fileName").textContent =
+        "Calcul des fichiers réellement nécessaires";
+      $("fileCount").textContent = "Comparaison avec la destination…";
+    }
+    if (event.type === "transfer-plan") {
+      $("transferSize").textContent =
+        event.totalBytes > 0
+          ? `0 octet / ${formatBytes(event.totalBytes)}`
+          : "Tout est déjà à jour";
+      $("fileCount").textContent =
+        event.totalTransfers > 0
+          ? `0 / ${event.totalTransfers} fichier${event.totalTransfers > 1 ? "s" : ""} à transférer`
+          : "Aucun fichier à transférer";
+    }
+    if (event.type === "phase-started") {
+      $("fileName").textContent =
+        event.phase === "Commun"
+          ? "Mise à jour des fichiers communs"
+          : event.phase === "Structure actuelle"
+            ? "Mise à jour des outils"
+            : `Mise à jour des outils ${event.phase}`;
+      log(`Traitement : ${event.phase}`);
+    }
     if (event.type === "progress") {
       const percent =
         event.totalBytes > 0 ? (event.bytes / event.totalBytes) * 100 : 0;
@@ -234,6 +297,11 @@ async function init() {
       $("selectionError").classList.add("hidden");
     });
   });
+
+  const defaultPlatform = document.querySelector(
+    `input[name="platform"][value="${server.defaultPlatform}"]`,
+  );
+  if (defaultPlatform) defaultPlatform.checked = true;
 
   $("startButton").addEventListener("click", startSync);
   $("cancelButton").addEventListener("click", cancelSync);

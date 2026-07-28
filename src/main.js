@@ -125,9 +125,9 @@ function destinationInfo() {
 function createWindow() {
   const window = new BrowserWindow({
     width: 780,
-    height: 610,
+    height: 700,
     minWidth: 720,
-    minHeight: 560,
+    minHeight: 650,
     show: false,
     center: true,
     backgroundColor: "#f6f7fb",
@@ -148,7 +148,11 @@ function createWindow() {
 ipcMain.handle("destination:get", () => destinationInfo());
 ipcMain.handle("server:get", () => {
   const config = loadRuntimeConfig();
-  return { mode: config.mode, serverName: config.serverName };
+  return {
+    mode: config.mode,
+    serverName: config.serverName,
+    defaultPlatform: process.platform === "win32" ? "Windows" : "Mac",
+  };
 });
 ipcMain.handle("sync:scan", async () => {
   const config = loadRuntimeConfig();
@@ -160,12 +164,17 @@ ipcMain.handle("sync:scan", async () => {
     ...webdavArgs(config),
   ]);
   const files = JSON.parse(result.stdout || "[]");
+  const mappedFiles = files.map((file) => ({
+    path: file.Path,
+    name: file.Name,
+    size: file.Size,
+  }));
+  const structured = mappedFiles.some((file) =>
+    ["Commun", "Windows", "Mac"].includes(file.path.split(/[\\/]/)[0]),
+  );
   return {
-    files: files.map((file) => ({
-      path: file.Path,
-      name: file.Name,
-      size: file.Size,
-    })),
+    files: mappedFiles,
+    structured,
     totalBytes: files.reduce(
       (sum, file) => sum + Math.max(0, file.Size || 0),
       0,
@@ -185,6 +194,11 @@ ipcMain.handle("sync:run", async (event, request) => {
     ? request.categories
     : [];
   const allSelected = requestedCategories.includes("ALL");
+  const selectedPlatform = ["Windows", "Mac"].includes(request?.platform)
+    ? request.platform
+    : process.platform === "win32"
+      ? "Windows"
+      : "Mac";
   const categories = allSelected
     ? allowedCategories
     : requestedCategories.filter((category) =>
@@ -202,65 +216,158 @@ ipcMain.handle("sync:run", async (event, request) => {
         `/${category}/**`,
       ]);
 
+  const allowedSources = ["Commun", selectedPlatform];
+  const requestedSources = Array.isArray(request?.sources)
+    ? request.sources.filter((source) => allowedSources.includes(source))
+    : allowedSources;
+  const phases = request?.structured
+    ? requestedSources.map((source) => ({
+        name: source,
+        remote: `:webdav:${source}`,
+      }))
+    : [{ name: "Structure actuelle", remote: ":webdav:" }];
+
+  const parseStats = (line, callback) => {
+    if (!line.trim()) return;
+    try {
+      const entry = JSON.parse(line);
+      if (entry.stats) callback(entry.stats, entry);
+    } catch {
+      // Les lignes non JSON sont conservées uniquement dans le journal rclone.
+    }
+  };
+
   event.sender.send("sync:event", { type: "transfer-started" });
-  const result = await runRclone(
-    [
-      "copy",
-      ":webdav:",
-      request.destination,
-      ...webdavArgs(config),
-      ...filterArgs,
-      "--check-first",
-      "--create-empty-src-dirs",
-      "--stats",
-      "250ms",
-      "--stats-log-level",
-      "INFO",
-      "--use-json-log",
-      "--log-level",
-      "INFO",
-    ],
-    (line) => {
-      if (!line.trim()) return;
-      try {
-        const entry = JSON.parse(line);
-        if (entry.stats) {
-          event.sender.send("sync:event", {
-            type: "progress",
-            bytes: Math.max(0, entry.stats.bytes || 0),
-            totalBytes: Math.max(0, entry.stats.totalBytes || 0),
-            transfers: Math.max(0, entry.stats.transfers || 0),
-            totalTransfers: Math.max(0, entry.stats.totalTransfers || 0),
-          });
-          const activeFile = Array.isArray(entry.stats.transferring)
-            ? entry.stats.transferring.find((transfer) => transfer?.name)
-            : null;
-          if (activeFile) {
+  event.sender.send("sync:event", { type: "preflight-started" });
+
+  for (const phase of phases) {
+    phase.totalBytes = 0;
+    phase.totalTransfers = 0;
+    await runRclone(
+      [
+        "copy",
+        phase.remote,
+        request.destination,
+        ...webdavArgs(config),
+        ...filterArgs,
+        "--dry-run",
+        "--check-first",
+        "--stats",
+        "250ms",
+        "--stats-log-level",
+        "INFO",
+        "--use-json-log",
+        "--log-level",
+        "INFO",
+      ],
+      (line) =>
+        parseStats(line, (stats) => {
+          phase.totalBytes = Math.max(
+            phase.totalBytes,
+            Math.max(0, stats.totalBytes || 0),
+          );
+          phase.totalTransfers = Math.max(
+            phase.totalTransfers,
+            Math.max(0, stats.totalTransfers || 0),
+          );
+        }),
+    );
+  }
+
+  const plannedBytes = phases.reduce(
+    (sum, phase) => sum + phase.totalBytes,
+    0,
+  );
+  const plannedTransfers = phases.reduce(
+    (sum, phase) => sum + phase.totalTransfers,
+    0,
+  );
+  let completedBytes = 0;
+  let completedTransfers = 0;
+  let combinedLog = "";
+
+  event.sender.send("sync:event", {
+    type: "transfer-plan",
+    totalBytes: plannedBytes,
+    totalTransfers: plannedTransfers,
+  });
+
+  for (const phase of phases) {
+    event.sender.send("sync:event", {
+      type: "phase-started",
+      phase: phase.name,
+    });
+    const result = await runRclone(
+      [
+        "copy",
+        phase.remote,
+        request.destination,
+        ...webdavArgs(config),
+        ...filterArgs,
+        "--check-first",
+        "--create-empty-src-dirs",
+        "--stats",
+        "250ms",
+        "--stats-log-level",
+        "INFO",
+        "--use-json-log",
+        "--log-level",
+        "INFO",
+      ],
+      (line) => {
+        if (!line.trim()) return;
+        try {
+          const entry = JSON.parse(line);
+          if (entry.stats) {
+            const phaseBytes = Math.min(
+              phase.totalBytes,
+              Math.max(0, entry.stats.bytes || 0),
+            );
+            const phaseTransfers = Math.min(
+              phase.totalTransfers,
+              Math.max(0, entry.stats.transfers || 0),
+            );
+            event.sender.send("sync:event", {
+              type: "progress",
+              bytes: completedBytes + phaseBytes,
+              totalBytes: plannedBytes,
+              transfers: completedTransfers + phaseTransfers,
+              totalTransfers: plannedTransfers,
+            });
+            const activeFile = Array.isArray(entry.stats.transferring)
+              ? entry.stats.transferring.find((transfer) => transfer?.name)
+              : null;
+            if (activeFile) {
+              event.sender.send("sync:event", {
+                type: "current-file",
+                path: activeFile.name,
+              });
+            }
+          }
+          if (entry.object) {
             event.sender.send("sync:event", {
               type: "current-file",
-              path: activeFile.name,
+              path: entry.object,
             });
           }
+          if (entry.msg && !entry.stats) {
+            event.sender.send("sync:event", {
+              type: "log",
+              line: entry.msg,
+            });
+          }
+        } catch {
+          event.sender.send("sync:event", { type: "log", line });
         }
-        if (entry.object) {
-          event.sender.send("sync:event", {
-            type: "current-file",
-            path: entry.object,
-          });
-        }
-        if (entry.msg && !entry.stats) {
-          event.sender.send("sync:event", {
-            type: "log",
-            line: entry.msg,
-          });
-        }
-      } catch {
-        event.sender.send("sync:event", { type: "log", line });
-      }
-    },
-  );
+      },
+    );
+    completedBytes += phase.totalBytes;
+    completedTransfers += phase.totalTransfers;
+    combinedLog += result.stderr;
+  }
+
   event.sender.send("sync:event", { type: "transfer-complete" });
-  return { ok: true, log: result.stderr };
+  return { ok: true, log: combinedLog };
 });
 ipcMain.handle("sync:cancel", () => {
   if (!activeTransfer) return false;

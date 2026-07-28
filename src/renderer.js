@@ -164,8 +164,8 @@ async function startSync() {
     }
 
     $("title").textContent = "Téléchargement des outils…";
-    $("subtitle").textContent =
-      "La barre indique les octets réellement transférés pour cette mise à jour.";
+    $("subtitle").textContent = "";
+    $("subtitle").classList.add("hidden");
     $("fileCount").textContent =
       `${selectedFiles.length} fichier${selectedFiles.length > 1 ? "s" : ""} sélectionné${selectedFiles.length > 1 ? "s" : ""}`;
     $("transferSize").textContent = `${formatBytes(selectedBytes)} sélectionnés`;

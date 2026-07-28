@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   macos:
-    name: DMG macOS Apple Silicon
+    name: DMG macOS Apple Silicon et Intel
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v6
@@ -23,13 +23,16 @@ jobs:
       - name: Installer les dépendances
         run: npm ci
 
-      - name: Ajouter rclone pour macOS
+      - name: Ajouter rclone pour macOS Apple Silicon et Intel
         run: |
-          mkdir -p resources/bin/darwin-arm64
-          curl -fsSL https://downloads.rclone.org/rclone-current-osx-arm64.zip -o /tmp/rclone.zip
-          unzip -q /tmp/rclone.zip -d /tmp/rclone
-          find /tmp/rclone -type f -name rclone -exec cp {} resources/bin/darwin-arm64/rclone \;
-          chmod 755 resources/bin/darwin-arm64/rclone
+          mkdir -p resources/bin/darwin-arm64 resources/bin/darwin-x64
+          curl -fsSL https://downloads.rclone.org/rclone-current-osx-arm64.zip -o /tmp/rclone-arm64.zip
+          curl -fsSL https://downloads.rclone.org/rclone-current-osx-amd64.zip -o /tmp/rclone-x64.zip
+          unzip -q /tmp/rclone-arm64.zip -d /tmp/rclone-arm64
+          unzip -q /tmp/rclone-x64.zip -d /tmp/rclone-x64
+          find /tmp/rclone-arm64 -type f -name rclone -exec cp {} resources/bin/darwin-arm64/rclone \;
+          find /tmp/rclone-x64 -type f -name rclone -exec cp {} resources/bin/darwin-x64/rclone \;
+          chmod 755 resources/bin/darwin-arm64/rclone resources/bin/darwin-x64/rclone
 
       - name: Préparer la configuration de test
         env:
@@ -38,10 +41,10 @@ jobs:
         run: |
           node -e 'const fs=require("fs"); fs.mkdirSync("config",{recursive:true}); fs.writeFileSync("config/runtime.json",JSON.stringify({mode:"nextcloud-public-share",serverName:"Nextcloud Alabama",webdavUrl:process.env.NEXTCLOUD_WEBDAV_URL,shareToken:process.env.NEXTCLOUD_SHARE_TOKEN},null,2))'
 
-      - name: Fabriquer le DMG
+      - name: Fabriquer les DMG Apple Silicon et Intel
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
-        run: npx electron-builder --mac dmg --arm64 --publish never
+        run: npx electron-builder --mac dmg --arm64 --x64 --publish never
 
       - uses: actions/upload-artifact@v6
         with:

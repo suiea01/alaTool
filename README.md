@@ -72,8 +72,9 @@ ne sont jamais publiés dans Git.
 Un tag Git commençant par `v` déclenche la fabrication automatique de :
 
 - un DMG pour les Mac Apple Silicon ;
+- un DMG pour les Mac Intel ;
 - un EXE portable pour Windows 64 bits ;
-- une préversion GitHub contenant les deux fichiers.
+- une préversion GitHub contenant les trois fichiers.
 
 Le dépôt doit définir les secrets GitHub Actions `NEXTCLOUD_WEBDAV_URL` et
 `NEXTCLOUD_SHARE_TOKEN`.

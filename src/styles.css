@@ -6,9 +6,18 @@
   --ink: #171929;
   --muted: #6f7484;
   --line: #e5e7ef;
+  --page: #f6f7fb;
   --panel: rgba(255, 255, 255, 0.94);
+  --surface: #fafbfe;
+  --control: #fff;
+  --control-ink: #4d5262;
+  --track: #e9ebf2;
+  --separator: #d9dce5;
+  --footer: #8c91a0;
+  --secondary-hover: #f7f8fb;
   --blue: #0069b4;
   --blue-dark: #00558f;
+  --button-blue: #0069b4;
   --green: #009640;
   --red: #e30613;
   --shadow: 0 24px 70px rgba(35, 39, 67, 0.12);
@@ -25,7 +34,7 @@ body {
   background:
     radial-gradient(circle at 8% 7%, rgba(227, 6, 19, 0.08), transparent 25%),
     radial-gradient(circle at 91% 12%, rgba(0, 105, 180, 0.1), transparent 29%),
-    #f6f7fb;
+    var(--page);
 }
 
 body::before {
@@ -77,7 +86,7 @@ button {
   width: 1px;
   height: 31px;
   border-radius: 1px;
-  background: #d9dce5;
+  background: var(--separator);
 }
 
 .brand-tool {
@@ -164,7 +173,7 @@ h1 {
   padding: 19px 20px 17px;
   border: 1px solid var(--line);
   border-radius: 16px;
-  background: #fafbfe;
+  background: var(--surface);
   transition: 200ms ease;
 }
 
@@ -174,7 +183,7 @@ h1 {
   padding: 19px 20px 20px;
   border: 1px solid var(--line);
   border-radius: 16px;
-  background: #fafbfe;
+  background: var(--surface);
 }
 
 .category-block legend,
@@ -216,8 +225,8 @@ h1 {
   min-height: 46px;
   border: 1px solid var(--line);
   border-radius: 11px;
-  color: #555b6d;
-  background: #fff;
+  color: var(--control-ink);
+  background: var(--control);
   font-size: 13px;
   font-weight: 750;
   transition: 160ms ease;
@@ -255,8 +264,8 @@ h1 {
   padding: 0 13px;
   border: 1px solid var(--line);
   border-radius: 11px;
-  color: #4d5262;
-  background: #fff;
+  color: var(--control-ink);
+  background: var(--control);
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
@@ -316,7 +325,7 @@ h1 {
   margin: 13px 0 11px;
   overflow: hidden;
   border-radius: 999px;
-  background: #e9ebf2;
+  background: var(--track);
 }
 
 .progress-fill {
@@ -352,7 +361,7 @@ h1 {
   place-items: center;
   border-radius: 10px;
   color: var(--blue);
-  background: white;
+  background: var(--control);
 }
 
 .destination-icon svg {
@@ -415,19 +424,19 @@ h1 {
 
 .secondary {
   border: 1px solid var(--line);
-  color: #53586a;
-  background: #fff;
+  color: var(--control-ink);
+  background: var(--control);
 }
 
 .secondary:hover {
   border-color: #cfd2dd;
-  background: #f7f8fb;
+  background: var(--secondary-hover);
 }
 
 .primary {
-  border: 1px solid var(--blue);
+  border: 1px solid var(--button-blue);
   color: #fff;
-  background: var(--blue);
+  background: var(--button-blue);
   box-shadow: 0 6px 16px rgba(0, 105, 180, 0.2);
 }
 
@@ -439,7 +448,7 @@ footer {
   display: flex;
   justify-content: space-between;
   padding: 15px 8px 0;
-  color: #8c91a0;
+  color: var(--footer);
   font-size: 11px;
 }
 
@@ -457,7 +466,7 @@ footer button {
   padding: 17px 20px;
   border: 1px solid var(--line);
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.8);
+  background: var(--panel);
   font-size: 12px;
 }
 
@@ -493,6 +502,56 @@ footer button {
 .cancelled .progress-fill {
   background: #a5a9b5;
   box-shadow: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --ink: #f2f4fa;
+    --muted: #a8afc0;
+    --line: #343946;
+    --page: #11131a;
+    --panel: rgba(27, 30, 39, 0.96);
+    --surface: #20242e;
+    --control: #292e39;
+    --control-ink: #d6d9e2;
+    --track: #343946;
+    --separator: #414653;
+    --footer: #8e95a6;
+    --secondary-hover: #303541;
+    --blue: #58bcef;
+    --blue-dark: #0870af;
+    --button-blue: #0879bd;
+    --green: #42c978;
+    --red: #ff6670;
+    --shadow: 0 24px 70px rgba(0, 0, 0, 0.38);
+  }
+
+  body {
+    background:
+      radial-gradient(circle at 8% 7%, rgba(227, 6, 19, 0.1), transparent 25%),
+      radial-gradient(circle at 91% 12%, rgba(0, 159, 227, 0.12), transparent 29%),
+      var(--page);
+  }
+
+  .card {
+    border-color: rgba(66, 72, 88, 0.9);
+  }
+
+  .test-badge {
+    border-color: rgba(88, 188, 239, 0.28);
+    background: rgba(88, 188, 239, 0.09);
+  }
+
+  .platform-toggle input:checked + span,
+  .category-option:has(input:checked) {
+    border-color: rgba(88, 188, 239, 0.6);
+    background: rgba(88, 188, 239, 0.12);
+  }
+
+  .destination {
+    background: rgba(88, 188, 239, 0.08);
+  }
 }
 
 @media (max-width: 620px) {

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell } = require("electron");
+const { app, BrowserWindow, ipcMain, nativeTheme, shell } = require("electron");
 const { spawn } = require("child_process");
 const path = require("path");
 const fs = require("fs");
@@ -132,7 +132,7 @@ function createWindow() {
     minHeight: 650,
     show: false,
     center: true,
-    backgroundColor: "#f6f7fb",
+    backgroundColor: nativeTheme.shouldUseDarkColors ? "#11131a" : "#f6f7fb",
     title: "alaTool",
     icon: path.join(__dirname, "..", "assets", "alatool-icon.png"),
     autoHideMenuBar: true,

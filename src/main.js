@@ -123,7 +123,7 @@ function destinationInfo() {
 }
 
 function createWindow() {
-  const initialHeight = process.platform === "win32" ? 650 : 670;
+  const initialHeight = process.platform === "win32" ? 680 : 670;
   const window = new BrowserWindow({
     width: 780,
     height: initialHeight,

@@ -125,7 +125,8 @@ function destinationInfo() {
 function createWindow() {
   const window = new BrowserWindow({
     width: 780,
-    height: 700,
+    height: 730,
+    useContentSize: true,
     minWidth: 720,
     minHeight: 650,
     show: false,

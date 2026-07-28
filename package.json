@@ -1,6 +1,6 @@
 {
   "name": "alatool",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Téléchargeur d’outils Alabama — prototype en mode test",
   "main": "src/main.js",
   "author": "Alabama",

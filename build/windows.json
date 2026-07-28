@@ -20,6 +20,7 @@
     }
   ],
   "win": {
+    "icon": "assets/alatool-icon.png",
     "target": [
       "portable"
     ],

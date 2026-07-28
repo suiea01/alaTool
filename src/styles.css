@@ -67,6 +67,26 @@ button {
   display: block;
 }
 
+.brand-lockup {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.brand-separator {
+  width: 1px;
+  height: 31px;
+  border-radius: 1px;
+  background: #d9dce5;
+}
+
+.brand-tool {
+  color: var(--blue);
+  font-size: 19px;
+  font-weight: 550;
+  letter-spacing: 0.18em;
+}
+
 .test-badge {
   padding: 7px 11px;
   border: 1px solid rgba(0, 105, 180, 0.2);
@@ -427,6 +447,14 @@ footer button {
 
   .logo {
     width: 168px;
+  }
+
+  .brand-lockup {
+    gap: 10px;
+  }
+
+  .brand-tool {
+    font-size: 16px;
   }
 
   .card {

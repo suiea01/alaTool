@@ -1,6 +1,6 @@
 {
   "name": "alatool",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Téléchargeur d’outils Alabama — prototype en mode test",
   "main": "src/main.js",
   "author": "Alabama",
@@ -38,6 +38,7 @@
     ],
     "mac": {
       "category": "public.app-category.utilities",
+      "icon": "assets/alatool-icon.png",
       "identity": "-",
       "hardenedRuntime": false,
       "target": [
@@ -45,6 +46,7 @@
       ]
     },
     "win": {
+      "icon": "assets/alatool-icon.png",
       "target": [
         "portable"
       ]

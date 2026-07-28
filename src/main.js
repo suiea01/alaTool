@@ -132,6 +132,7 @@ function createWindow() {
     center: true,
     backgroundColor: "#f6f7fb",
     title: "alaTool",
+    icon: path.join(__dirname, "..", "assets", "alatool-icon.png"),
     autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),

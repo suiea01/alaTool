@@ -1,0 +1,19 @@
+# Dépendances
+node_modules/
+
+# Fabrication et livrables locaux
+outputs/
+dist/
+
+# Caches et fichiers de travail
+work/
+.npm/
+*.log
+
+# macOS / Windows
+.DS_Store
+Thumbs.db
+
+# Éditeurs
+.idea/
+.vscode/

@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>alaTool</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <img class="logo" src="../assets/alabama-logo.svg" alt="Alabama" />
+        <span class="test-badge">MODE TEST</span>
+      </header>
+
+      <section class="card" aria-live="polite">
+        <div class="status-mark" id="statusMark">
+          <svg viewBox="0 0 44 44" aria-hidden="true">
+            <circle cx="22" cy="22" r="19"></circle>
+            <path d="M14 22.5l5 5 11-12"></path>
+          </svg>
+        </div>
+
+        <div class="heading">
+          <p class="eyebrow">MISE À JOUR DES OUTILS</p>
+          <h1 id="title">Préparation du téléchargement…</h1>
+          <p class="subtitle" id="subtitle">
+            alaTool vérifie la destination et les fichiers disponibles.
+          </p>
+        </div>
+
+        <div class="progress-block" id="progressBlock">
+          <div class="progress-meta">
+            <span id="fileName">Connexion au serveur de test</span>
+            <strong id="percent">0 %</strong>
+          </div>
+          <div
+            class="progress-track"
+            role="progressbar"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow="0"
+          >
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+          <div class="transfer-meta">
+            <span id="fileCount">Analyse des composants…</span>
+            <span id="transferSize">—</span>
+          </div>
+        </div>
+
+        <div class="destination">
+          <span class="destination-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M3 6.5h7l2 2h9v9.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6.5Z"></path>
+            </svg>
+          </span>
+          <span>
+            <small>Destination</small>
+            <strong id="destinationPath">Détection en cours…</strong>
+            <em id="fallbackNote"></em>
+          </span>
+        </div>
+
+        <div class="actions">
+          <button class="secondary" id="cancelButton">Annuler</button>
+          <button class="primary hidden" id="openButton">Ouvrir le dossier</button>
+          <button class="primary hidden" id="retryButton">Relancer le test</button>
+        </div>
+      </section>
+
+      <footer>
+        <span>alaTool 0.1 · Prototype</span>
+        <button id="detailsButton">Afficher les détails</button>
+      </footer>
+
+      <section class="details hidden" id="detailsPanel">
+        <div class="details-title">
+          <strong>Journal de l’opération</strong>
+          <span>Simulation — aucun fichier distant n’est téléchargé</span>
+        </div>
+        <ol id="logList"></ol>
+      </section>
+    </main>
+
+    <script src="renderer.js"></script>
+  </body>
+</html>

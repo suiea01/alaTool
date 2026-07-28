@@ -1,0 +1,44 @@
+{
+  "name": "alatool",
+  "version": "0.1.0",
+  "description": "Téléchargeur d’outils Alabama — prototype en mode test",
+  "main": "src/main.js",
+  "author": "Alabama",
+  "license": "UNLICENSED",
+  "scripts": {
+    "start": "electron .",
+    "build:mac": "electron-builder --mac dir",
+    "build:win": "electron-builder --win portable"
+  },
+  "devDependencies": {
+    "electron": "^37.2.0",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "fr.alabama.alatool",
+    "productName": "alaTool",
+    "electronDist": "node_modules/electron/dist",
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "outputs/build"
+    },
+    "mac": {
+      "category": "public.app-category.utilities",
+      "target": [
+        "dir"
+      ]
+    },
+    "win": {
+      "target": [
+        "portable"
+      ]
+    }
+  },
+  "allowScripts": {
+    "electron@37.10.3": true
+  }
+}

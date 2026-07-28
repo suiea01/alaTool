@@ -30,3 +30,14 @@ la plateforme doit être placé dans `resources/bin/<plateforme>-<architecture>/
 La même interface pourra être raccordée au Synology avec un compte dédié en
 lecture seule. Le fichier `config/runtime.json` et les binaires rclone locaux
 ne sont jamais publiés dans Git.
+
+## Versions de test
+
+Un tag Git commençant par `v` déclenche la fabrication automatique de :
+
+- un DMG pour les Mac Apple Silicon ;
+- un EXE portable pour Windows 64 bits ;
+- une préversion GitHub contenant les deux fichiers.
+
+Le dépôt doit définir les secrets GitHub Actions `NEXTCLOUD_WEBDAV_URL` et
+`NEXTCLOUD_SHARE_TOKEN`.

@@ -1,0 +1,28 @@
+{
+  "appId": "fr.alabama.alatool",
+  "productName": "alaTool",
+  "files": [
+    "src/**/*",
+    "assets/**/*",
+    "package.json"
+  ],
+  "directories": {
+    "output": "outputs/build"
+  },
+  "extraResources": [
+    {
+      "from": "resources/bin/win32-x64",
+      "to": "bin/win32-x64"
+    },
+    {
+      "from": "config/runtime.json",
+      "to": "config/runtime.json"
+    }
+  ],
+  "win": {
+    "target": [
+      "portable"
+    ],
+    "artifactName": "alaTool-${version}-Windows-x64.${ext}"
+  }
+}

@@ -1,0 +1,108 @@
+name: Publier une version de test
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  macos:
+    name: DMG macOS Apple Silicon
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Ajouter rclone pour macOS
+        run: |
+          mkdir -p resources/bin/darwin-arm64
+          curl -fsSL https://downloads.rclone.org/rclone-current-osx-arm64.zip -o /tmp/rclone.zip
+          unzip -q /tmp/rclone.zip -d /tmp/rclone
+          find /tmp/rclone -type f -name rclone -exec cp {} resources/bin/darwin-arm64/rclone \;
+          chmod 755 resources/bin/darwin-arm64/rclone
+
+      - name: Préparer la configuration de test
+        env:
+          NEXTCLOUD_WEBDAV_URL: ${{ secrets.NEXTCLOUD_WEBDAV_URL }}
+          NEXTCLOUD_SHARE_TOKEN: ${{ secrets.NEXTCLOUD_SHARE_TOKEN }}
+        run: |
+          node -e 'const fs=require("fs"); fs.mkdirSync("config",{recursive:true}); fs.writeFileSync("config/runtime.json",JSON.stringify({mode:"nextcloud-public-share",serverName:"Nextcloud Alabama",webdavUrl:process.env.NEXTCLOUD_WEBDAV_URL,shareToken:process.env.NEXTCLOUD_SHARE_TOKEN},null,2))'
+
+      - name: Fabriquer le DMG
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: npx electron-builder --mac dmg --arm64 --publish never
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: alatool-macos
+          path: outputs/build/*.dmg
+
+  windows:
+    name: EXE Windows 64 bits
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Ajouter rclone pour Windows
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force resources/bin/win32-x64 | Out-Null
+          Invoke-WebRequest https://downloads.rclone.org/rclone-current-windows-amd64.zip -OutFile "$env:RUNNER_TEMP/rclone.zip"
+          Expand-Archive "$env:RUNNER_TEMP/rclone.zip" -DestinationPath "$env:RUNNER_TEMP/rclone"
+          $binary = Get-ChildItem "$env:RUNNER_TEMP/rclone" -Recurse -Filter rclone.exe | Select-Object -First 1
+          Copy-Item $binary.FullName resources/bin/win32-x64/rclone.exe
+
+      - name: Préparer la configuration de test
+        shell: pwsh
+        env:
+          NEXTCLOUD_WEBDAV_URL: ${{ secrets.NEXTCLOUD_WEBDAV_URL }}
+          NEXTCLOUD_SHARE_TOKEN: ${{ secrets.NEXTCLOUD_SHARE_TOKEN }}
+        run: |
+          node -e 'const fs=require("fs"); fs.mkdirSync("config",{recursive:true}); fs.writeFileSync("config/runtime.json",JSON.stringify({mode:"nextcloud-public-share",serverName:"Nextcloud Alabama",webdavUrl:process.env.NEXTCLOUD_WEBDAV_URL,shareToken:process.env.NEXTCLOUD_SHARE_TOKEN},null,2))'
+
+      - name: Fabriquer l’EXE
+        run: npx electron-builder --config build/windows.json --win portable --x64 --publish never
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: alatool-windows
+          path: outputs/build/*.exe
+
+  release:
+    name: Créer la préversion GitHub
+    needs: [macos, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-files
+          merge-multiple: true
+
+      - name: Publier les fichiers
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh release create "$GITHUB_REF_NAME" release-files/*
+          --repo "$GITHUB_REPOSITORY"
+          --prerelease
+          --generate-notes
+          --title "alaTool $GITHUB_REF_NAME — version de test"

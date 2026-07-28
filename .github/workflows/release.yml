@@ -13,9 +13,9 @@ jobs:
     name: DMG macOS Apple Silicon
     runs-on: macos-14
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: npm
@@ -43,7 +43,7 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
         run: npx electron-builder --mac dmg --arm64 --publish never
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: alatool-macos
           path: outputs/build/*.dmg
@@ -52,9 +52,9 @@ jobs:
     name: EXE Windows 64 bits
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: npm
@@ -82,7 +82,7 @@ jobs:
       - name: Fabriquer l’EXE
         run: npx electron-builder --config build/windows.json --win portable --x64 --publish never
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: alatool-windows
           path: outputs/build/*.exe
@@ -92,7 +92,7 @@ jobs:
     needs: [macos, windows]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           path: release-files
           merge-multiple: true

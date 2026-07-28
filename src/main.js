@@ -60,20 +60,36 @@ function runRclone(args, onLine) {
     activeTransfer = child;
     let stdout = "";
     let stderr = "";
+    let stdoutLine = "";
+    let stderrLine = "";
 
     child.stdout.on("data", (chunk) => {
       const text = chunk.toString();
       stdout += text;
-      if (onLine) onLine(text);
+      if (onLine) {
+        stdoutLine += text;
+        const lines = stdoutLine.split(/\r?\n/);
+        stdoutLine = lines.pop();
+        lines.forEach((line) => onLine(line));
+      }
     });
     child.stderr.on("data", (chunk) => {
       const text = chunk.toString();
       stderr += text;
-      if (onLine) onLine(text);
+      if (onLine) {
+        stderrLine += text;
+        const lines = stderrLine.split(/\r?\n/);
+        stderrLine = lines.pop();
+        lines.forEach((line) => onLine(line));
+      }
     });
     child.on("error", reject);
     child.on("close", (code, signal) => {
       activeTransfer = null;
+      if (onLine) {
+        if (stdoutLine) onLine(stdoutLine);
+        if (stderrLine) onLine(stderrLine);
+      }
       if (signal) {
         reject(new Error("Téléchargement annulé"));
       } else if (code !== 0) {
@@ -155,22 +171,92 @@ ipcMain.handle("sync:scan", async () => {
     ),
   };
 });
-ipcMain.handle("sync:run", async (event, destination) => {
+ipcMain.handle("sync:run", async (event, request) => {
   const config = loadRuntimeConfig();
+  const allowedCategories = [
+    "LED",
+    "Captation",
+    "Divers",
+    "Switcher",
+    "Média Serveur",
+  ];
+  const requestedCategories = Array.isArray(request?.categories)
+    ? request.categories
+    : [];
+  const allSelected = requestedCategories.includes("ALL");
+  const categories = allSelected
+    ? allowedCategories
+    : requestedCategories.filter((category) =>
+        allowedCategories.includes(category),
+      );
+
+  if (!request?.destination || categories.length === 0) {
+    throw new Error("Aucune catégorie valide n’a été sélectionnée.");
+  }
+
+  const filterArgs = allSelected
+    ? []
+    : categories.flatMap((category) => [
+        "--include",
+        `/${category}/**`,
+      ]);
+
   event.sender.send("sync:event", { type: "transfer-started" });
   const result = await runRclone(
     [
       "copy",
       ":webdav:",
-      destination,
+      request.destination,
       ...webdavArgs(config),
+      ...filterArgs,
+      "--check-first",
       "--create-empty-src-dirs",
       "--stats",
       "250ms",
+      "--stats-log-level",
+      "INFO",
+      "--use-json-log",
       "--log-level",
       "INFO",
     ],
-    (line) => event.sender.send("sync:event", { type: "log", line }),
+    (line) => {
+      if (!line.trim()) return;
+      try {
+        const entry = JSON.parse(line);
+        if (entry.stats) {
+          event.sender.send("sync:event", {
+            type: "progress",
+            bytes: Math.max(0, entry.stats.bytes || 0),
+            totalBytes: Math.max(0, entry.stats.totalBytes || 0),
+            transfers: Math.max(0, entry.stats.transfers || 0),
+            totalTransfers: Math.max(0, entry.stats.totalTransfers || 0),
+          });
+          const activeFile = Array.isArray(entry.stats.transferring)
+            ? entry.stats.transferring.find((transfer) => transfer?.name)
+            : null;
+          if (activeFile) {
+            event.sender.send("sync:event", {
+              type: "current-file",
+              path: activeFile.name,
+            });
+          }
+        }
+        if (entry.object) {
+          event.sender.send("sync:event", {
+            type: "current-file",
+            path: entry.object,
+          });
+        }
+        if (entry.msg && !entry.stats) {
+          event.sender.send("sync:event", {
+            type: "log",
+            line: entry.msg,
+          });
+        }
+      } catch {
+        event.sender.send("sync:event", { type: "log", line });
+      }
+    },
   );
   event.sender.send("sync:event", { type: "transfer-complete" });
   return { ok: true, log: result.stderr };

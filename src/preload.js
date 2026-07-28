@@ -4,7 +4,7 @@ contextBridge.exposeInMainWorld("alaTool", {
   getDestination: () => ipcRenderer.invoke("destination:get"),
   getServer: () => ipcRenderer.invoke("server:get"),
   scan: () => ipcRenderer.invoke("sync:scan"),
-  sync: (destination) => ipcRenderer.invoke("sync:run", destination),
+  sync: (request) => ipcRenderer.invoke("sync:run", request),
   cancelSync: () => ipcRenderer.invoke("sync:cancel"),
   onSyncEvent: (callback) => {
     const listener = (_event, payload) => callback(payload);

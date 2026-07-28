@@ -26,13 +26,46 @@
 
         <div class="heading">
           <p class="eyebrow">MISE À JOUR DES OUTILS</p>
-          <h1 id="title">Préparation du téléchargement…</h1>
+          <h1 id="title">Quels outils souhaitez-vous télécharger ?</h1>
           <p class="subtitle" id="subtitle">
-            alaTool vérifie la destination et les fichiers disponibles.
+            Sélectionnez une ou plusieurs catégories. Divers est coché par défaut.
           </p>
         </div>
 
-        <div class="progress-block" id="progressBlock">
+        <fieldset class="category-block" id="categoryBlock">
+          <legend>Catégories disponibles</legend>
+          <div class="category-grid">
+            <label class="category-option all-option">
+              <input type="checkbox" id="categoryAll" value="ALL" />
+              <span>ALL</span>
+            </label>
+            <label class="category-option">
+              <input type="checkbox" name="category" value="LED" />
+              <span>LED</span>
+            </label>
+            <label class="category-option">
+              <input type="checkbox" name="category" value="Captation" />
+              <span>Captation</span>
+            </label>
+            <label class="category-option">
+              <input type="checkbox" name="category" value="Divers" checked />
+              <span>Divers</span>
+            </label>
+            <label class="category-option">
+              <input type="checkbox" name="category" value="Switcher" />
+              <span>Switcher</span>
+            </label>
+            <label class="category-option">
+              <input type="checkbox" name="category" value="Média Serveur" />
+              <span>Média Serveur</span>
+            </label>
+          </div>
+          <p class="selection-error hidden" id="selectionError">
+            Sélectionnez au moins une catégorie.
+          </p>
+        </fieldset>
+
+        <div class="progress-block hidden" id="progressBlock">
           <div class="progress-meta">
             <span id="fileName">Connexion au serveur de test</span>
             <strong id="percent">0 %</strong>
@@ -66,14 +99,15 @@
         </div>
 
         <div class="actions">
-          <button class="secondary" id="cancelButton">Annuler</button>
+          <button class="primary" id="startButton">Télécharger</button>
+          <button class="secondary hidden" id="cancelButton">Annuler</button>
           <button class="primary hidden" id="openButton">Ouvrir le dossier</button>
-          <button class="primary hidden" id="retryButton">Relancer le test</button>
+          <button class="primary hidden" id="retryButton">Revenir au choix</button>
         </div>
       </section>
 
       <footer>
-        <span>alaTool 0.1 · Nextcloud en lecture seule</span>
+        <span>alaTool 0.2 · Nextcloud en lecture seule</span>
         <button id="detailsButton">Afficher les détails</button>
       </footer>
 

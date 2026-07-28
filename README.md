@@ -4,10 +4,14 @@ Prototype d’une application de synchronisation des outils Alabama.
 
 ## Mode test Nextcloud
 
-L’application démarre automatiquement une copie réelle depuis un partage public
-Nextcloud configuré localement dans `config/runtime.json`. Elle utilise le mode
-`copy` de rclone : les fichiers nouveaux ou modifiés sont téléchargés, mais
-aucun fichier local n’est supprimé.
+L’application propose les catégories `ALL`, `LED`, `Captation`, `Divers`,
+`Switcher` et `Média Serveur`. `Divers` est sélectionné par défaut. Après
+validation, elle copie uniquement les dossiers choisis depuis le partage public
+Nextcloud configuré dans `config/runtime.json`.
+
+Elle utilise le mode `copy` de rclone : les fichiers nouveaux ou modifiés sont
+téléchargés, mais aucun fichier local n’est supprimé. La barre de progression
+repose sur les octets réellement transférés par rclone.
 
 La destination est sélectionnée ainsi :
 

@@ -68,7 +68,8 @@ function showSelection() {
   cancelled = false;
   document.body.classList.remove("cancelled");
   $("statusMark").classList.remove("visible");
-  $("title").innerHTML = "Quels outils souhaitez-vous télécharger&nbsp;?";
+  $("title").textContent = "";
+  $("title").classList.add("hidden");
   $("subtitle").textContent = "";
   $("subtitle").classList.add("hidden");
   $("platformBlock").classList.remove("hidden");
@@ -86,6 +87,7 @@ function setRunningState(categories, platform) {
   document.body.classList.remove("cancelled");
   $("statusMark").classList.remove("visible");
   $("title").textContent = "Analyse des outils sélectionnés…";
+  $("title").classList.remove("hidden");
   $("subtitle").textContent =
     `${platform} + fichiers communs · ${categories.includes("ALL") ? "toutes les catégories" : categories.join(", ")}.`;
   $("subtitle").classList.remove("hidden");

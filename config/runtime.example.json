@@ -1,0 +1,6 @@
+{
+  "mode": "nextcloud-public-share",
+  "serverName": "Nextcloud Alabama",
+  "webdavUrl": "https://nextcloud.example.com/public.php/dav/files/SHARE_TOKEN/",
+  "shareToken": "SHARE_TOKEN"
+}

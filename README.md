@@ -2,11 +2,12 @@
 
 Prototype d’une application de synchronisation des outils Alabama.
 
-## Mode test
+## Mode test Nextcloud
 
-L’application démarre automatiquement une simulation de téléchargement. Aucun
-serveur n’est contacté et aucun fichier distant n’est écrit. Le bouton
-« Ouvrir le dossier » crée uniquement le dossier de destination choisi.
+L’application démarre automatiquement une copie réelle depuis un partage public
+Nextcloud configuré localement dans `config/runtime.json`. Elle utilise le mode
+`copy` de rclone : les fichiers nouveaux ou modifiés sont téléchargés, mais
+aucun fichier local n’est supprimé.
 
 La destination est sélectionnée ainsi :
 
@@ -20,8 +21,12 @@ npm install
 npm start
 ```
 
+Copier d’abord `config/runtime.example.json` vers `config/runtime.json`, puis
+renseigner l’adresse WebDAV et le jeton du partage. Le binaire rclone adapté à
+la plateforme doit être placé dans `resources/bin/<plateforme>-<architecture>/`.
+
 ## Étape suivante
 
-Le moteur de simulation de `src/renderer.js` sera remplacé par les événements
-de progression rclone quand l’emplacement Synology et le compte en lecture
-seule seront disponibles.
+La même interface pourra être raccordée au Synology avec un compte dédié en
+lecture seule. Le fichier `config/runtime.json` et les binaires rclone locaux
+ne sont jamais publiés dans Git.

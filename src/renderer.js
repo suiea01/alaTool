@@ -68,9 +68,9 @@ function showSelection() {
   cancelled = false;
   document.body.classList.remove("cancelled");
   $("statusMark").classList.remove("visible");
-  $("title").textContent = "Quels outils souhaitez-vous télécharger ?";
-  $("subtitle").textContent =
-    "Sélectionnez une ou plusieurs catégories. Divers est coché par défaut.";
+  $("title").innerHTML = "Quels outils souhaitez-vous télécharger&nbsp;?";
+  $("subtitle").textContent = "";
+  $("subtitle").classList.add("hidden");
   $("platformBlock").classList.remove("hidden");
   $("categoryBlock").classList.remove("hidden");
   $("progressBlock").classList.add("hidden");
@@ -88,6 +88,7 @@ function setRunningState(categories, platform) {
   $("title").textContent = "Analyse des outils sélectionnés…";
   $("subtitle").textContent =
     `${platform} + fichiers communs · ${categories.includes("ALL") ? "toutes les catégories" : categories.join(", ")}.`;
+  $("subtitle").classList.remove("hidden");
   $("platformBlock").classList.add("hidden");
   $("categoryBlock").classList.add("hidden");
   $("progressBlock").classList.remove("hidden");
@@ -268,7 +269,7 @@ async function init() {
       setProgress(percent);
       $("transferSize").textContent =
         event.totalBytes > 0
-          ? `${formatBytes(event.bytes)} / ${formatBytes(event.totalBytes)}`
+          ? `${formatBytes(event.bytes)} / ${formatBytes(event.totalBytes)}${event.speed > 0 ? ` · ${formatBytes(event.speed)}/s` : ""}`
           : "Aucun octet à télécharger";
       if (event.totalTransfers > 0) {
         $("fileCount").textContent =

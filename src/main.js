@@ -333,6 +333,7 @@ ipcMain.handle("sync:run", async (event, request) => {
               totalBytes: plannedBytes,
               transfers: completedTransfers + phaseTransfers,
               totalTransfers: plannedTransfers,
+              speed: Math.max(0, Number(entry.stats.speed) || 0),
             });
             const activeFile = Array.isArray(entry.stats.transferring)
               ? entry.stats.transferring.find((transfer) => transfer?.name)

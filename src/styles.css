@@ -241,12 +241,6 @@ h1 {
   outline-offset: 2px;
 }
 
-.platform-block p {
-  margin: 11px 0 0;
-  color: var(--muted);
-  font-size: 11px;
-}
-
 .category-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

@@ -74,6 +74,7 @@ function fileIsSelected(file, selections, platform, structured) {
   if (selection.paths === null) return true;
   const relativeParts = parts.slice(structured ? 2 : 1);
   const folderPath = relativeParts.slice(0, -1).join("/");
+  if (relativeParts[0]?.normalize("NFC") === "_Inclus") return true;
   return selection.paths.some((selectedPath) =>
     selectedPath
       ? folderPath === selectedPath || folderPath.startsWith(`${selectedPath}/`)
@@ -109,7 +110,7 @@ function renderCategoryStates() {
 }
 
 function categoryTree(category, platform) {
-  const root = { children: new Map(), rootFiles: false };
+  const root = { children: new Map() };
   if (!scanCache) return root;
   scanCache.files.forEach((file) => {
     const parts = file.path.split(/[\\/]/);
@@ -118,10 +119,7 @@ function categoryTree(category, platform) {
     if (fileCategory?.normalize("NFC") !== category.normalize("NFC")) return;
     if (scanCache.structured && !["Commun", platform].includes(source)) return;
     const folderParts = parts.slice(scanCache.structured ? 2 : 1, -1);
-    if (!folderParts.length) {
-      root.rootFiles = true;
-      return;
-    }
+    if (!folderParts.length || folderParts[0]?.normalize("NFC") === "_Inclus") return;
     let node = root;
     folderParts.forEach((part) => {
       if (!node.children.has(part)) {
@@ -187,17 +185,11 @@ function renderFolderTree() {
   const tree = categoryTree(modalCategory, platform);
   $("folderTree").replaceChildren();
 
-  if (tree.rootFiles) {
-    const rootNode = { name: "Fichiers du dossier principal", children: new Map() };
-    const rootElement = folderNodeElement(rootNode, "", "");
-    $("folderTree").append(rootElement);
-  }
-
   [...tree.children.values()]
     .sort((a, b) => a.name.localeCompare(b.name, "fr", { numeric: true }))
     .forEach((node) => $("folderTree").append(folderNodeElement(node)));
 
-  const empty = !tree.rootFiles && tree.children.size === 0;
+  const empty = tree.children.size === 0;
   $("folderEmpty").classList.toggle("hidden", !empty);
 }
 
@@ -209,12 +201,11 @@ function updateModalMode() {
 async function openCategoryModal(category) {
   modalCategory = category;
   const selection = categorySelections.get(category);
-  modalPaths = new Set(selection?.paths || []);
+  modalPaths = new Set(selection?.mode === "partial" ? selection.paths : []);
   $("modalTitle").textContent = category;
   $("folderModal").classList.remove("hidden");
-  const mode = selection?.mode || "none";
   document.querySelector(
-    `input[name="selectionMode"][value="${mode}"]`,
+    'input[name="selectionMode"][value="partial"]',
   ).checked = true;
   updateModalMode();
   $("folderTree").replaceChildren();

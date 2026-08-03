@@ -222,6 +222,7 @@ ipcMain.handle("sync:run", async (event, request) => {
                     )
                     .join("/"),
                 )
+                .filter(Boolean)
             : [],
     }))
     .filter((selection) => selection.paths === null || selection.paths.length);
@@ -244,12 +245,14 @@ ipcMain.handle("sync:run", async (event, request) => {
     if (selection.paths === null) {
       return ["--include", `/${selection.category}/**`];
     }
-    return selection.paths.flatMap((selectedPath) => [
+    return [
       "--include",
-      selectedPath
-        ? `/${selection.category}/${selectedPath}/**`
-        : `/${selection.category}/*`,
-    ]);
+      `/${selection.category}/_Inclus/**`,
+      ...selection.paths.flatMap((selectedPath) => [
+        "--include",
+        `/${selection.category}/${selectedPath}/**`,
+      ]),
+    ];
   });
 
   const allowedSources = ["Commun", selectedPlatform];

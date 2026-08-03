@@ -49,6 +49,20 @@ Chaque catégorie peut être téléchargée entièrement ou limitée à certains
 sous-dossiers. Par exemple, sélectionner `LED/COEX/MX20` évite de récupérer les
 autres variantes COEX. `Divers` reste sélectionné entièrement au démarrage.
 
+Un dossier réservé nommé `_Inclus` peut être placé directement dans chaque
+catégorie. Son contenu est masqué dans la fenêtre de sélection et toujours
+téléchargé dès que la catégorie correspondante est choisie, entièrement ou
+partiellement. Les fichiers isolés qui doivent être automatiques doivent donc être
+rangés dans ce dossier, par exemple :
+
+```text
+Commun/
+  LED/
+    _Inclus/
+      Mire/
+      mire-reference.jpg
+```
+
 La destination est sélectionnée ainsi :
 
 - Windows : `T:\`, sinon `Documents\Tools`

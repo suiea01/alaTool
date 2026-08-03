@@ -7,6 +7,7 @@ let selectedPlatform = null;
 let scanCache = null;
 let modalCategory = null;
 let modalPaths = new Set();
+let modalDirty = false;
 
 const categories = ["LED", "Captation", "Divers", "Switcher", "Média Serveur"];
 const categorySelections = new Map([
@@ -171,6 +172,7 @@ function folderNodeElement(node, parentPath = "", pathOverride = null) {
   input.checked = coveredPaths.length > 0 && selectedCount === coveredPaths.length;
   input.indeterminate = selectedCount > 0 && selectedCount < coveredPaths.length;
   input.addEventListener("change", () => {
+    modalDirty = true;
     coveredPaths.forEach((item) => {
       if (input.checked) modalPaths.add(item);
       else modalPaths.delete(item);
@@ -216,6 +218,7 @@ function updateModalMode() {
 
 async function openCategoryModal(category) {
   modalCategory = category;
+  modalDirty = false;
   const selection = categorySelections.get(category);
   modalPaths = new Set(selection?.mode === "partial" ? selection.paths : []);
   $("modalTitle").textContent = category;
@@ -246,6 +249,10 @@ function closeCategoryModal() {
 }
 
 function applyCategoryModal({ allowEmpty = false } = {}) {
+  if (!modalDirty) {
+    closeCategoryModal();
+    return;
+  }
   const mode = document.querySelector('input[name="selectionMode"]:checked')?.value;
   if (mode === "partial" && modalPaths.size === 0) {
     if (allowEmpty) {
@@ -544,9 +551,12 @@ async function init() {
     });
   });
 
-  document.querySelectorAll('input[name="selectionMode"]').forEach((input) =>
-    input.addEventListener("change", updateModalMode),
-  );
+  document.querySelectorAll('input[name="selectionMode"]').forEach((input) => {
+    input.addEventListener("change", () => {
+      modalDirty = true;
+      updateModalMode();
+    });
+  });
   $("modalApply").addEventListener("click", () => applyCategoryModal());
   $("modalCancel").addEventListener("click", closeCategoryModal);
   $("modalClose").addEventListener("click", () =>

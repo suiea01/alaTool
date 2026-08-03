@@ -241,30 +241,57 @@ ipcMain.handle("sync:run", async (event, request) => {
     throw new Error("Aucune catégorie valide n’a été sélectionnée.");
   }
 
-  const filterArgs = effectiveSelections.flatMap((selection) => {
-    if (selection.paths === null) {
-      return ["--include", `/${selection.category}/**`];
-    }
-    return [
-      "--include",
+  const filterArgs = [
+    ...effectiveSelections.flatMap((selection) => [
+      "--exclude",
       `/${selection.category}/_Inclus/**`,
-      ...selection.paths.flatMap((selectedPath) => [
+    ]),
+    ...effectiveSelections.flatMap((selection) => {
+      if (selection.paths === null) {
+        return ["--include", `/${selection.category}/**`];
+      }
+      return selection.paths.flatMap((selectedPath) => [
         "--include",
-        `/${selection.category}/${selectedPath}/**`,
-      ]),
-    ];
-  });
+        `/${selection.category}/${selectedPath}/*`,
+      ]);
+    }),
+  ];
 
   const allowedSources = ["Commun", selectedPlatform];
   const requestedSources = Array.isArray(request?.sources)
     ? request.sources.filter((source) => allowedSources.includes(source))
     : allowedSources;
-  const phases = request?.structured
+  const normalPhases = request?.structured
     ? requestedSources.map((source) => ({
         name: source,
         remote: `:webdav:${source}`,
+        destination: request.destination,
+        filterArgs,
       }))
-    : [{ name: "Structure actuelle", remote: ":webdav:" }];
+    : [
+        {
+          name: "Structure actuelle",
+          remote: ":webdav:",
+          destination: request.destination,
+          filterArgs,
+        },
+      ];
+  const includedFolders = Array.isArray(request?.includedFolders)
+    ? request.includedFolders.filter(
+        (folder) =>
+          allowedCategories.includes(folder?.category) &&
+          (!request?.structured || allowedSources.includes(folder?.source)),
+      )
+    : [];
+  const includedPhases = includedFolders.map((folder) => ({
+    name: `${folder.source ? `${folder.source} · ` : ""}${folder.category} · éléments inclus`,
+    remote: request?.structured
+      ? `:webdav:${folder.source}/${folder.category}/_Inclus`
+      : `:webdav:${folder.category}/_Inclus`,
+    destination: path.join(request.destination, folder.category),
+    filterArgs: [],
+  }));
+  const phases = [...normalPhases, ...includedPhases];
 
   const parseStats = (line, callback) => {
     if (!line.trim()) return;
@@ -286,9 +313,9 @@ ipcMain.handle("sync:run", async (event, request) => {
       [
         "copy",
         phase.remote,
-        request.destination,
+        phase.destination,
         ...webdavArgs(config),
-        ...filterArgs,
+        ...phase.filterArgs,
         "--dry-run",
         "--check-first",
         "--stats",
@@ -340,9 +367,9 @@ ipcMain.handle("sync:run", async (event, request) => {
       [
         "copy",
         phase.remote,
-        request.destination,
+        phase.destination,
         ...webdavArgs(config),
-        ...filterArgs,
+        ...phase.filterArgs,
         "--check-first",
         "--create-empty-src-dirs",
         "--stats",

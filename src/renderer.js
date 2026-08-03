@@ -75,11 +75,7 @@ function fileIsSelected(file, selections, platform, structured) {
   const relativeParts = parts.slice(structured ? 2 : 1);
   const folderPath = relativeParts.slice(0, -1).join("/");
   if (relativeParts[0]?.normalize("NFC") === "_Inclus") return true;
-  return selection.paths.some((selectedPath) =>
-    selectedPath
-      ? folderPath === selectedPath || folderPath.startsWith(`${selectedPath}/`)
-      : folderPath === "",
-  );
+  return selection.paths.includes(folderPath);
 }
 
 function renderCategoryStates() {
@@ -123,12 +119,26 @@ function categoryTree(category, platform) {
     let node = root;
     folderParts.forEach((part) => {
       if (!node.children.has(part)) {
-        node.children.set(part, { name: part, children: new Map() });
+        node.children.set(part, {
+          name: part,
+          children: new Map(),
+          directFiles: false,
+        });
       }
       node = node.children.get(part);
     });
+    node.directFiles = true;
   });
   return root;
+}
+
+function selectablePaths(node, folderPath) {
+  const paths = node.directFiles ? [folderPath] : [];
+  node.children.forEach((child) => {
+    const childPath = `${folderPath}/${child.name}`;
+    paths.push(...selectablePaths(child, childPath));
+  });
+  return paths;
 }
 
 function folderNodeElement(node, parentPath = "", pathOverride = null) {
@@ -156,10 +166,16 @@ function folderNodeElement(node, parentPath = "", pathOverride = null) {
   const input = document.createElement("input");
   input.type = "checkbox";
   input.value = folderPath;
-  input.checked = modalPaths.has(folderPath);
+  const coveredPaths = selectablePaths(node, folderPath);
+  const selectedCount = coveredPaths.filter((item) => modalPaths.has(item)).length;
+  input.checked = coveredPaths.length > 0 && selectedCount === coveredPaths.length;
+  input.indeterminate = selectedCount > 0 && selectedCount < coveredPaths.length;
   input.addEventListener("change", () => {
-    if (input.checked) modalPaths.add(folderPath);
-    else modalPaths.delete(folderPath);
+    coveredPaths.forEach((item) => {
+      if (input.checked) modalPaths.add(item);
+      else modalPaths.delete(item);
+    });
+    renderFolderTree();
   });
   const text = document.createElement("span");
   text.textContent = node.name;
@@ -238,16 +254,9 @@ function applyCategoryModal() {
   }
   if (mode === "none") categorySelections.delete(modalCategory);
   else {
-    const normalizedPaths = [...modalPaths]
-      .sort((a, b) => a.split("/").length - b.split("/").length)
-      .filter(
-        (selectedPath, index, paths) =>
-          selectedPath === "" ||
-          !paths.slice(0, index).some(
-            (parentPath) =>
-              parentPath !== "" && selectedPath.startsWith(`${parentPath}/`),
-          ),
-      );
+    const normalizedPaths = [...modalPaths].sort((a, b) =>
+      a.localeCompare(b, "fr", { numeric: true }),
+    );
     categorySelections.set(modalCategory, {
       mode,
       paths: mode === "partial" ? normalizedPaths : [],
@@ -339,6 +348,25 @@ async function startSync() {
           ),
         ]
       : [];
+    const includedFolders = [
+      ...new Map(
+        selectedFiles
+          .map((file) => {
+            const parts = file.path.split(/[\\/]/);
+            const categoryIndex = scan.structured ? 1 : 0;
+            const relativeIndex = categoryIndex + 1;
+            if (parts[relativeIndex]?.normalize("NFC") !== "_Inclus") {
+              return null;
+            }
+            const folder = {
+              source: scan.structured ? parts[0] : "",
+              category: parts[categoryIndex],
+            };
+            return [`${folder.source}/${folder.category}`, folder];
+          })
+          .filter(Boolean),
+      ).values(),
+    ];
     const selectedBytes = selectedFiles.reduce(
       (sum, file) => sum + Math.max(0, file.size || 0),
       0,
@@ -383,6 +411,7 @@ async function startSync() {
       platform: selectedPlatform,
       structured: scan.structured,
       sources: selectedSources,
+      includedFolders,
     });
     if (cancelled) return;
 

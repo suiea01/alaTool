@@ -48,6 +48,8 @@ repose sur les octets réellement transférés par rclone.
 Chaque catégorie peut être téléchargée entièrement ou limitée à certains de ses
 sous-dossiers. Par exemple, sélectionner `LED/COEX/MX20` évite de récupérer les
 autres variantes COEX. `Divers` reste sélectionné entièrement au démarrage.
+Cocher un dossier parent coche tous ses sous-dossiers. Si un seul sous-dossier est
+ensuite décoché, le parent affiche un trait pour signaler la sélection partielle.
 
 Un dossier réservé nommé `_Inclus` peut être placé directement dans chaque
 catégorie. Son contenu est masqué dans la fenêtre de sélection et toujours
@@ -62,6 +64,10 @@ Commun/
       Mire/
       mire-reference.jpg
 ```
+
+Le dossier `_Inclus` est uniquement technique : il n’est pas recréé dans la
+destination. Dans cet exemple, son contenu arrive directement dans `LED/Mire/` et
+`LED/mire-reference.jpg`.
 
 La destination est sélectionnée ainsi :
 

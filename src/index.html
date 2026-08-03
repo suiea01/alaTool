@@ -61,30 +61,24 @@
         <fieldset class="category-block" id="categoryBlock">
           <legend>Catégories disponibles</legend>
           <div class="category-grid">
-            <label class="category-option all-option">
-              <input type="checkbox" id="categoryAll" value="ALL" />
-              <span>ALL</span>
-            </label>
-            <label class="category-option">
-              <input type="checkbox" name="category" value="LED" />
-              <span>LED</span>
-            </label>
-            <label class="category-option">
-              <input type="checkbox" name="category" value="Captation" />
-              <span>Captation</span>
-            </label>
-            <label class="category-option">
-              <input type="checkbox" name="category" value="Divers" checked />
-              <span>Divers</span>
-            </label>
-            <label class="category-option">
-              <input type="checkbox" name="category" value="Switcher" />
-              <span>Switcher</span>
-            </label>
-            <label class="category-option">
-              <input type="checkbox" name="category" value="Média Serveur" />
-              <span>Média Serveur</span>
-            </label>
+            <button class="category-option all-option" data-category="ALL">
+              <span>ALL</span><small id="status-ALL">Tout sélectionner</small>
+            </button>
+            <button class="category-option" data-category="LED">
+              <span>LED</span><small id="status-LED">Non sélectionné</small>
+            </button>
+            <button class="category-option" data-category="Captation">
+              <span>Captation</span><small id="status-Captation">Non sélectionné</small>
+            </button>
+            <button class="category-option" data-category="Divers">
+              <span>Divers</span><small id="status-Divers">Tout le dossier</small>
+            </button>
+            <button class="category-option" data-category="Switcher">
+              <span>Switcher</span><small id="status-Switcher">Non sélectionné</small>
+            </button>
+            <button class="category-option" data-category="Média Serveur">
+              <span>Média Serveur</span><small id="status-Média Serveur">Non sélectionné</small>
+            </button>
           </div>
           <p class="selection-error hidden" id="selectionError">
             Sélectionnez au moins une catégorie.
@@ -133,7 +127,7 @@
       </section>
 
       <footer>
-        <span>alaTool 0.3.5 · Nextcloud en lecture seule</span>
+        <span>alaTool 0.3.6 · Nextcloud en lecture seule</span>
         <button id="detailsButton">Afficher les détails</button>
       </footer>
 
@@ -145,6 +139,44 @@
         <ol id="logList"></ol>
       </section>
     </main>
+
+    <div class="modal-backdrop hidden" id="folderModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <section class="folder-modal">
+        <header class="modal-header">
+          <div>
+            <p class="eyebrow">SÉLECTION PERSONNALISÉE</p>
+            <h2 id="modalTitle">LED</h2>
+          </div>
+          <button class="modal-close" id="modalClose" aria-label="Fermer">×</button>
+        </header>
+
+        <div class="selection-mode" role="group" aria-label="Mode de sélection">
+          <label>
+            <input type="radio" name="selectionMode" value="all" />
+            <span>Tout le dossier</span>
+          </label>
+          <label>
+            <input type="radio" name="selectionMode" value="partial" />
+            <span>Sélection personnalisée</span>
+          </label>
+          <label>
+            <input type="radio" name="selectionMode" value="none" />
+            <span>Ne rien sélectionner</span>
+          </label>
+        </div>
+
+        <div class="folder-browser hidden" id="folderBrowser">
+          <p class="folder-help">Choisissez les dossiers nécessaires. Un dossier sélectionné inclut tout son contenu.</p>
+          <div class="folder-tree" id="folderTree"></div>
+          <p class="folder-empty hidden" id="folderEmpty">Aucun sous-dossier disponible dans cette catégorie.</p>
+        </div>
+
+        <footer class="modal-actions">
+          <button class="secondary" id="modalCancel">Annuler</button>
+          <button class="primary" id="modalApply">Valider</button>
+        </footer>
+      </section>
+    </div>
 
     <script src="renderer.js"></script>
   </body>

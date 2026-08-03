@@ -45,10 +45,14 @@ Elle utilise le mode `copy` de rclone : les fichiers nouveaux ou modifiés sont
 téléchargés, mais aucun fichier local n’est supprimé. La barre de progression
 repose sur les octets réellement transférés par rclone.
 
+Chaque catégorie peut être téléchargée entièrement ou limitée à certains de ses
+sous-dossiers. Par exemple, sélectionner `LED/COEX/MX20` évite de récupérer les
+autres variantes COEX. `Divers` reste sélectionné entièrement au démarrage.
+
 La destination est sélectionnée ainsi :
 
-- Windows : `T:\Tools`, sinon `Documents\Tools`
-- macOS : `/Volumes/T/Tools`, sinon `Documents/Tools`
+- Windows : `T:\`, sinon `Documents\Tools`
+- macOS : `/Volumes/T`, sinon `Documents/Tools`
 
 ## Lancer le prototype
 

@@ -105,14 +105,14 @@ function destinationInfo() {
   if (process.platform === "win32") {
     const preferred = "T:\\";
     if (fs.existsSync(preferred)) {
-      return { path: path.join(preferred, "Tools"), fallback: false };
+      return { path: preferred, fallback: false };
     }
   }
 
   if (process.platform === "darwin") {
     const preferred = "/Volumes/T";
     if (fs.existsSync(preferred)) {
-      return { path: path.join(preferred, "Tools"), fallback: false };
+      return { path: preferred, fallback: false };
     }
   }
 
@@ -195,28 +195,62 @@ ipcMain.handle("sync:run", async (event, request) => {
   const requestedCategories = Array.isArray(request?.categories)
     ? request.categories
     : [];
-  const allSelected = requestedCategories.includes("ALL");
   const selectedPlatform = ["Windows", "Mac"].includes(request?.platform)
     ? request.platform
     : process.platform === "win32"
       ? "Windows"
       : "Mac";
-  const categories = allSelected
+  const requestedSelections = Array.isArray(request?.selections)
+    ? request.selections
+    : [];
+  const selections = requestedSelections
+    .filter((selection) => allowedCategories.includes(selection?.category))
+    .map((selection) => ({
+      category: selection.category,
+      paths:
+        selection.paths === null
+          ? null
+          : Array.isArray(selection.paths)
+            ? selection.paths
+                .filter((selectedPath) => typeof selectedPath === "string")
+                .map((selectedPath) =>
+                  selectedPath
+                    .split(/[\\/]/)
+                    .filter(
+                      (segment) =>
+                        segment && segment !== "." && segment !== "..",
+                    )
+                    .join("/"),
+                )
+            : [],
+    }))
+    .filter((selection) => selection.paths === null || selection.paths.length);
+  const legacyAllSelected = requestedCategories.includes("ALL");
+  const legacyCategories = legacyAllSelected
     ? allowedCategories
     : requestedCategories.filter((category) =>
         allowedCategories.includes(category),
       );
+  const effectiveSelections = selections.length
+    ? selections
+    : legacyCategories.map((category) => ({ category, paths: null }));
+  const categories = effectiveSelections.map((selection) => selection.category);
 
   if (!request?.destination || categories.length === 0) {
     throw new Error("Aucune catégorie valide n’a été sélectionnée.");
   }
 
-  const filterArgs = allSelected
-    ? []
-    : categories.flatMap((category) => [
-        "--include",
-        `/${category}/**`,
-      ]);
+  const filterArgs = effectiveSelections.flatMap((selection) => {
+    if (selection.paths === null) {
+      return ["--include", `/${selection.category}/**`];
+    }
+    return selection.paths.flatMap((selectedPath) => [
+      "--include",
+      selectedPath
+        ? `/${selection.category}/${selectedPath}/**`
+        : `/${selection.category}/*`,
+    ]);
+  });
 
   const allowedSources = ["Commun", selectedPlatform];
   const requestedSources = Array.isArray(request?.sources)

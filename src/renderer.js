@@ -4,12 +4,17 @@ let cancelled = false;
 let selectedFiles = [];
 let selectedCategories = [];
 let selectedPlatform = null;
+let scanCache = null;
+let modalCategory = null;
+let modalPaths = new Set();
+
+const categories = ["LED", "Captation", "Divers", "Switcher", "Média Serveur"];
+const categorySelections = new Map([
+  ["Divers", { mode: "all", paths: [] }],
+]);
 
 const $ = (id) => document.getElementById(id);
 const wait = (duration) => new Promise((resolve) => setTimeout(resolve, duration));
-const categoryInputs = () => [
-  ...document.querySelectorAll('input[name="category"]'),
-];
 
 function formatBytes(bytes) {
   if (!bytes) return "0 octet";
@@ -41,27 +46,225 @@ function setProgress(value) {
   document.querySelector(".progress-track").setAttribute("aria-valuenow", rounded);
 }
 
-function selectedValues() {
-  if ($("categoryAll").checked) return ["ALL"];
-  return categoryInputs()
-    .filter((input) => input.checked)
-    .map((input) => input.value);
+function selectionEntries() {
+  return categories.flatMap((category) => {
+    const selection = categorySelections.get(category);
+    if (!selection) return [];
+    return [{
+      category,
+      paths: selection.mode === "all" ? null : [...selection.paths],
+    }];
+  });
 }
 
-function fileIsSelected(file, categories, platform, structured) {
+function fileIsSelected(file, selections, platform, structured) {
   const parts = file.path.split(/[\\/]/);
   const source = parts[0]?.normalize("NFC");
   const category = structured ? parts[1] : parts[0];
   if (structured && !["Commun", platform].includes(source)) return false;
-  if (categories.includes("ALL")) return Boolean(category);
   const normalizedCategory = category
     ?.normalize("NFC")
     .toLocaleLowerCase("fr");
-  return categories.some(
-    (requestedCategory) =>
-      requestedCategory.normalize("NFC").toLocaleLowerCase("fr") ===
+  const selection = selections.find(
+    (entry) =>
+      entry.category.normalize("NFC").toLocaleLowerCase("fr") ===
       normalizedCategory,
   );
+  if (!selection) return false;
+  if (selection.paths === null) return true;
+  const relativeParts = parts.slice(structured ? 2 : 1);
+  const folderPath = relativeParts.slice(0, -1).join("/");
+  return selection.paths.some((selectedPath) =>
+    selectedPath
+      ? folderPath === selectedPath || folderPath.startsWith(`${selectedPath}/`)
+      : folderPath === "",
+  );
+}
+
+function renderCategoryStates() {
+  const allComplete = categories.every(
+    (category) => categorySelections.get(category)?.mode === "all",
+  );
+  const hasSelection = categorySelections.size > 0;
+  const allButton = document.querySelector('[data-category="ALL"]');
+  allButton.classList.toggle("selected", allComplete);
+  allButton.classList.toggle("partial", !allComplete && hasSelection);
+  $("status-ALL").textContent = allComplete
+    ? "Tout sélectionné"
+    : hasSelection
+      ? "Sélection active"
+      : "Tout sélectionner";
+
+  categories.forEach((category) => {
+    const button = document.querySelector(`[data-category="${category}"]`);
+    const selection = categorySelections.get(category);
+    button.classList.toggle("selected", selection?.mode === "all");
+    button.classList.toggle("partial", selection?.mode === "partial");
+    $(`status-${category}`).textContent = !selection
+      ? "Non sélectionné"
+      : selection.mode === "all"
+        ? "Tout le dossier"
+        : `${selection.paths.length} dossier${selection.paths.length > 1 ? "s" : ""}`;
+  });
+}
+
+function categoryTree(category, platform) {
+  const root = { children: new Map(), rootFiles: false };
+  if (!scanCache) return root;
+  scanCache.files.forEach((file) => {
+    const parts = file.path.split(/[\\/]/);
+    const source = scanCache.structured ? parts[0] : null;
+    const fileCategory = scanCache.structured ? parts[1] : parts[0];
+    if (fileCategory?.normalize("NFC") !== category.normalize("NFC")) return;
+    if (scanCache.structured && !["Commun", platform].includes(source)) return;
+    const folderParts = parts.slice(scanCache.structured ? 2 : 1, -1);
+    if (!folderParts.length) {
+      root.rootFiles = true;
+      return;
+    }
+    let node = root;
+    folderParts.forEach((part) => {
+      if (!node.children.has(part)) {
+        node.children.set(part, { name: part, children: new Map() });
+      }
+      node = node.children.get(part);
+    });
+  });
+  return root;
+}
+
+function folderNodeElement(node, parentPath = "", pathOverride = null) {
+  const folderPath = pathOverride ?? (parentPath ? `${parentPath}/${node.name}` : node.name);
+  const wrapper = document.createElement("div");
+  wrapper.className = "folder-node";
+
+  const row = document.createElement("div");
+  row.className = "folder-row";
+  if (node.children.size) {
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "folder-toggle";
+    toggle.textContent = "▾";
+    toggle.setAttribute("aria-label", `Afficher ou masquer ${node.name}`);
+    toggle.addEventListener("click", () => wrapper.classList.toggle("collapsed"));
+    row.append(toggle);
+  } else {
+    const spacer = document.createElement("span");
+    spacer.className = "folder-spacer";
+    row.append(spacer);
+  }
+
+  const label = document.createElement("label");
+  const input = document.createElement("input");
+  input.type = "checkbox";
+  input.value = folderPath;
+  input.checked = modalPaths.has(folderPath);
+  input.addEventListener("change", () => {
+    if (input.checked) modalPaths.add(folderPath);
+    else modalPaths.delete(folderPath);
+  });
+  const text = document.createElement("span");
+  text.textContent = node.name;
+  label.append(input, text);
+  row.append(label);
+  wrapper.append(row);
+
+  if (node.children.size) {
+    const children = document.createElement("div");
+    children.className = "folder-children";
+    [...node.children.values()]
+      .sort((a, b) => a.name.localeCompare(b.name, "fr", { numeric: true }))
+      .forEach((child) => children.append(folderNodeElement(child, folderPath)));
+    wrapper.append(children);
+  }
+  return wrapper;
+}
+
+function renderFolderTree() {
+  const platform =
+    document.querySelector('input[name="platform"]:checked')?.value ||
+    server.defaultPlatform;
+  const tree = categoryTree(modalCategory, platform);
+  $("folderTree").replaceChildren();
+
+  if (tree.rootFiles) {
+    const rootNode = { name: "Fichiers du dossier principal", children: new Map() };
+    const rootElement = folderNodeElement(rootNode, "", "");
+    $("folderTree").append(rootElement);
+  }
+
+  [...tree.children.values()]
+    .sort((a, b) => a.name.localeCompare(b.name, "fr", { numeric: true }))
+    .forEach((node) => $("folderTree").append(folderNodeElement(node)));
+
+  const empty = !tree.rootFiles && tree.children.size === 0;
+  $("folderEmpty").classList.toggle("hidden", !empty);
+}
+
+function updateModalMode() {
+  const mode = document.querySelector('input[name="selectionMode"]:checked')?.value;
+  $("folderBrowser").classList.toggle("hidden", mode !== "partial");
+}
+
+async function openCategoryModal(category) {
+  modalCategory = category;
+  const selection = categorySelections.get(category);
+  modalPaths = new Set(selection?.paths || []);
+  $("modalTitle").textContent = category;
+  $("folderModal").classList.remove("hidden");
+  const mode = selection?.mode || "none";
+  document.querySelector(
+    `input[name="selectionMode"][value="${mode}"]`,
+  ).checked = true;
+  updateModalMode();
+  $("folderTree").replaceChildren();
+  $("folderEmpty").textContent = "Analyse de Nextcloud…";
+  $("folderEmpty").classList.remove("hidden");
+
+  try {
+    if (!scanCache) scanCache = await window.alaTool.scan();
+    renderFolderTree();
+    $("folderEmpty").textContent =
+      "Aucun sous-dossier disponible dans cette catégorie.";
+  } catch (error) {
+    $("folderEmpty").textContent =
+      "Impossible de lire les dossiers Nextcloud pour le moment.";
+    log(error.message || String(error));
+  }
+}
+
+function closeCategoryModal() {
+  $("folderModal").classList.add("hidden");
+  modalCategory = null;
+}
+
+function applyCategoryModal() {
+  const mode = document.querySelector('input[name="selectionMode"]:checked')?.value;
+  if (mode === "partial" && modalPaths.size === 0) {
+    $("folderEmpty").textContent = "Sélectionnez au moins un dossier.";
+    $("folderEmpty").classList.remove("hidden");
+    return;
+  }
+  if (mode === "none") categorySelections.delete(modalCategory);
+  else {
+    const normalizedPaths = [...modalPaths]
+      .sort((a, b) => a.split("/").length - b.split("/").length)
+      .filter(
+        (selectedPath, index, paths) =>
+          selectedPath === "" ||
+          !paths.slice(0, index).some(
+            (parentPath) =>
+              parentPath !== "" && selectedPath.startsWith(`${parentPath}/`),
+          ),
+      );
+    categorySelections.set(modalCategory, {
+      mode,
+      paths: mode === "partial" ? normalizedPaths : [],
+    });
+  }
+  renderCategoryStates();
+  $("selectionError").classList.add("hidden");
+  closeCategoryModal();
 }
 
 function showSelection() {
@@ -80,6 +283,7 @@ function showSelection() {
   $("openButton").classList.add("hidden");
   $("retryButton").classList.add("hidden");
   $("selectionError").classList.add("hidden");
+  renderCategoryStates();
 }
 
 function setRunningState(categories, platform) {
@@ -106,7 +310,8 @@ function setRunningState(categories, platform) {
 }
 
 async function startSync() {
-  selectedCategories = selectedValues();
+  const selections = selectionEntries();
+  selectedCategories = selections.map((selection) => selection.category);
   selectedPlatform =
     document.querySelector('input[name="platform"]:checked')?.value ||
     server.defaultPlatform;
@@ -127,7 +332,7 @@ async function startSync() {
     selectedFiles = scan.files.filter((file) =>
       fileIsSelected(
         file,
-        selectedCategories,
+        selections,
         selectedPlatform,
         scan.structured,
       ),
@@ -153,6 +358,7 @@ async function startSync() {
       $("title").textContent = "Aucun outil disponible";
       $("subtitle").textContent =
         "Les catégories sélectionnées sont actuellement vides sur Nextcloud.";
+      $("subtitle").classList.remove("hidden");
       $("fileName").textContent = "Aucun fichier à télécharger";
       $("fileCount").textContent = "0 fichier";
       $("transferSize").textContent = "0 octet";
@@ -182,6 +388,7 @@ async function startSync() {
     await window.alaTool.sync({
       destination: destination.path,
       categories: selectedCategories,
+      selections,
       platform: selectedPlatform,
       structured: scan.structured,
       sources: selectedSources,
@@ -192,6 +399,7 @@ async function startSync() {
     $("title").textContent = "Les outils sélectionnés sont à jour";
     $("subtitle").textContent =
       "La copie Nextcloud s’est terminée avec succès. Aucun fichier local n’a été supprimé.";
+    $("subtitle").classList.remove("hidden");
     $("fileName").textContent = "Mise à jour terminée";
     $("fileCount").textContent =
       `${selectedFiles.length} fichier${selectedFiles.length > 1 ? "s" : ""} vérifié${selectedFiles.length > 1 ? "s" : ""}`;
@@ -206,6 +414,7 @@ async function startSync() {
     $("title").textContent = "Téléchargement impossible";
     $("subtitle").textContent =
       "Les fichiers existants n’ont pas été supprimés. Consultez les détails puis revenez au choix.";
+    $("subtitle").classList.remove("hidden");
     $("fileName").textContent = "Une erreur est survenue";
     $("cancelButton").classList.add("hidden");
     $("retryButton").classList.remove("hidden");
@@ -220,6 +429,7 @@ async function cancelSync() {
   $("title").textContent = "Téléchargement annulé";
   $("subtitle").textContent =
     "Aucun fichier existant n’a été supprimé. Vous pouvez revenir au choix des catégories.";
+  $("subtitle").classList.remove("hidden");
   $("fileName").textContent = "Opération interrompue";
   $("cancelButton").classList.add("hidden");
   $("retryButton").classList.remove("hidden");
@@ -286,19 +496,40 @@ async function init() {
     }
   });
 
-  $("categoryAll").addEventListener("change", (event) => {
-    categoryInputs().forEach((input) => {
-      input.checked = event.target.checked;
+  document.querySelectorAll("[data-category]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const category = button.dataset.category;
+      if (category === "ALL") {
+        const allComplete = categories.every(
+          (item) => categorySelections.get(item)?.mode === "all",
+        );
+        categorySelections.clear();
+        if (!allComplete) {
+          categories.forEach((item) =>
+            categorySelections.set(item, { mode: "all", paths: [] }),
+          );
+        }
+        renderCategoryStates();
+        $("selectionError").classList.add("hidden");
+        return;
+      }
+      openCategoryModal(category);
     });
-    $("selectionError").classList.add("hidden");
   });
-  categoryInputs().forEach((input) => {
-    input.addEventListener("change", () => {
-      $("categoryAll").checked = categoryInputs().every(
-        (category) => category.checked,
-      );
-      $("selectionError").classList.add("hidden");
-    });
+
+  document.querySelectorAll('input[name="selectionMode"]').forEach((input) =>
+    input.addEventListener("change", updateModalMode),
+  );
+  $("modalApply").addEventListener("click", applyCategoryModal);
+  $("modalCancel").addEventListener("click", closeCategoryModal);
+  $("modalClose").addEventListener("click", closeCategoryModal);
+  $("folderModal").addEventListener("click", (event) => {
+    if (event.target === $("folderModal")) closeCategoryModal();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !$("folderModal").classList.contains("hidden")) {
+      closeCategoryModal();
+    }
   });
 
   const defaultPlatform = document.querySelector(

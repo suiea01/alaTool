@@ -245,9 +245,16 @@ function closeCategoryModal() {
   modalCategory = null;
 }
 
-function applyCategoryModal() {
+function applyCategoryModal({ allowEmpty = false } = {}) {
   const mode = document.querySelector('input[name="selectionMode"]:checked')?.value;
   if (mode === "partial" && modalPaths.size === 0) {
+    if (allowEmpty) {
+      categorySelections.delete(modalCategory);
+      renderCategoryStates();
+      $("selectionError").classList.add("hidden");
+      closeCategoryModal();
+      return;
+    }
     $("folderEmpty").textContent = "Sélectionnez au moins un dossier.";
     $("folderEmpty").classList.remove("hidden");
     return;
@@ -540,15 +547,19 @@ async function init() {
   document.querySelectorAll('input[name="selectionMode"]').forEach((input) =>
     input.addEventListener("change", updateModalMode),
   );
-  $("modalApply").addEventListener("click", applyCategoryModal);
+  $("modalApply").addEventListener("click", () => applyCategoryModal());
   $("modalCancel").addEventListener("click", closeCategoryModal);
-  $("modalClose").addEventListener("click", closeCategoryModal);
+  $("modalClose").addEventListener("click", () =>
+    applyCategoryModal({ allowEmpty: true }),
+  );
   $("folderModal").addEventListener("click", (event) => {
-    if (event.target === $("folderModal")) closeCategoryModal();
+    if (event.target === $("folderModal")) {
+      applyCategoryModal({ allowEmpty: true });
+    }
   });
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && !$("folderModal").classList.contains("hidden")) {
-      closeCategoryModal();
+      applyCategoryModal({ allowEmpty: true });
     }
   });
 

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="660" height="400" viewBox="0 0 660 400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff8fa"/>
+      <stop offset="0.52" stop-color="#f8f9fc"/>
+      <stop offset="1" stop-color="#eef6fd"/>
+    </linearGradient>
+  </defs>
+  <rect width="660" height="400" fill="url(#background)"/>
+  <image x="170" y="38" width="320" height="45" xlink:href="alabama-logo.svg"/>
+  <text x="330" y="117" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="600" fill="#0069b4">Glissez alaTool dans Applications</text>
+  <path d="M270 235h105" fill="none" stroke="#0069b4" stroke-width="3" stroke-linecap="round"/>
+  <path d="m366 225 12 10-12 10" fill="none" stroke="#0069b4" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

@@ -1,6 +1,6 @@
 {
   "name": "alatool",
-  "version": "0.3.8",
+  "version": "0.3.9",
   "description": "Téléchargeur d’outils Alabama — prototype en mode test",
   "main": "src/main.js",
   "author": "Alabama",
@@ -43,6 +43,25 @@
       "hardenedRuntime": false,
       "target": [
         "dir"
+      ]
+    },
+    "dmg": {
+      "background": "assets/dmg-background.png",
+      "window": {
+        "width": 660,
+        "height": 400
+      },
+      "contents": [
+        {
+          "x": 165,
+          "y": 235
+        },
+        {
+          "x": 495,
+          "y": 235,
+          "type": "link",
+          "path": "/Applications"
+        }
       ]
     },
     "win": {

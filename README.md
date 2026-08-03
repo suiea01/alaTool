@@ -50,6 +50,8 @@ sous-dossiers. Par exemple, sélectionner `LED/COEX/MX20` évite de récupérer 
 autres variantes COEX. `Divers` reste sélectionné entièrement au démarrage.
 Cocher un dossier parent coche tous ses sous-dossiers. Si un seul sous-dossier est
 ensuite décoché, le parent affiche un trait pour signaler la sélection partielle.
+La croix, la touche Échap et un clic à l’extérieur de la fenêtre enregistrent la
+sélection courante. Seul le bouton `Annuler` abandonne les modifications.
 
 Un dossier réservé nommé `_Inclus` peut être placé directement dans chaque
 catégorie. Son contenu est masqué dans la fenêtre de sélection et toujours

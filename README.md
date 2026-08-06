@@ -78,6 +78,11 @@ La destination est sélectionnée ainsi :
 - Windows : `T:\`, sinon `Documents\Tools`
 - macOS : `/Volumes/T`, sinon `Documents/Tools`
 
+À l’ouverture, alaTool vérifie le volume T en y créant puis supprimant un petit
+fichier temporaire. Si cette écriture échoue, notamment sur un volume en lecture
+seule, le dossier Documents est utilisé. L’arborescence Nextcloud est également
+chargée en arrière-plan dès le lancement pour accélérer l’ouverture des catégories.
+
 ## Lancer le prototype
 
 ```sh

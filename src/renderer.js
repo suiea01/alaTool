@@ -5,6 +5,7 @@ let selectedFiles = [];
 let selectedCategories = [];
 let selectedPlatform = null;
 let scanCache = null;
+let scanPromise = null;
 let modalCategory = null;
 let modalPaths = new Set();
 let modalDirty = false;
@@ -16,6 +17,23 @@ const categorySelections = new Map([
 
 const $ = (id) => document.getElementById(id);
 const wait = (duration) => new Promise((resolve) => setTimeout(resolve, duration));
+
+function ensureScan() {
+  if (scanCache) return Promise.resolve(scanCache);
+  if (!scanPromise) {
+    scanPromise = window.alaTool
+      .scan()
+      .then((scan) => {
+        scanCache = scan;
+        return scan;
+      })
+      .catch((error) => {
+        scanPromise = null;
+        throw error;
+      });
+  }
+  return scanPromise;
+}
 
 function formatBytes(bytes) {
   if (!bytes) return "0 octet";
@@ -232,7 +250,7 @@ async function openCategoryModal(category) {
   $("folderEmpty").classList.remove("hidden");
 
   try {
-    if (!scanCache) scanCache = await window.alaTool.scan();
+    await ensureScan();
     renderFolderTree();
     $("folderEmpty").textContent =
       "Aucun sous-dossier disponible dans cette catégorie.";
@@ -341,7 +359,7 @@ async function startSync() {
   log(`Destination sélectionnée : ${destination.path}`);
 
   try {
-    const scan = await window.alaTool.scan();
+    const scan = await ensureScan();
     if (cancelled) return;
     selectedFiles = scan.files.filter((file) =>
       fileIsSelected(
@@ -471,14 +489,21 @@ async function cancelSync() {
 }
 
 async function init() {
+  const initialScan = ensureScan().catch(() => null);
   [destination, server] = await Promise.all([
     window.alaTool.getDestination(),
     window.alaTool.getServer(),
   ]);
   $("destinationPath").textContent = destination.path;
-  $("fallbackNote").textContent = destination.fallback
-    ? "Le volume T n’est pas disponible : dossier Documents utilisé."
-    : "Volume T détecté.";
+  $("fallbackNote").textContent = !destination.fallback
+    ? "Volume T détecté et accessible en écriture."
+    : destination.fallbackReason === "read-only"
+      ? "Le volume T est en lecture seule : dossier Documents utilisé."
+      : "Le volume T n’est pas disponible : dossier Documents utilisé.";
+
+  initialScan.then(() => {
+    // L’analyse est conservée en mémoire pour les prochains clics.
+  });
 
   window.alaTool.onSyncEvent((event) => {
     if (event.type === "transfer-started") {

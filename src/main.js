@@ -101,24 +101,50 @@ function runRclone(args, onLine) {
   });
 }
 
-function destinationInfo() {
-  if (process.platform === "win32") {
-    const preferred = "T:\\";
-    if (fs.existsSync(preferred)) {
-      return { path: preferred, fallback: false };
+async function canWriteTo(folderPath) {
+  const probePath = path.join(
+    folderPath,
+    `.alatool-write-test-${process.pid}-${Date.now()}.tmp`,
+  );
+  try {
+    await fs.promises.writeFile(probePath, "alaTool", { flag: "wx" });
+    await fs.promises.unlink(probePath);
+    return true;
+  } catch {
+    try {
+      await fs.promises.unlink(probePath);
+    } catch {
+      // Aucun fichier de contrôle n’a été créé, ou il a déjà été supprimé.
     }
+    return false;
+  }
+}
+
+async function destinationInfo() {
+  let preferred = null;
+  if (process.platform === "win32") {
+    preferred = "T:\\";
   }
 
   if (process.platform === "darwin") {
-    const preferred = "/Volumes/T";
-    if (fs.existsSync(preferred)) {
+    preferred = "/Volumes/T";
+  }
+
+  if (preferred && fs.existsSync(preferred)) {
+    if (await canWriteTo(preferred)) {
       return { path: preferred, fallback: false };
     }
+    return {
+      path: path.join(os.homedir(), "Documents", "Tools"),
+      fallback: true,
+      fallbackReason: "read-only",
+    };
   }
 
   return {
     path: path.join(os.homedir(), "Documents", "Tools"),
     fallback: true,
+    fallbackReason: "unavailable",
   };
 }
 

@@ -80,7 +80,9 @@ La destination est sélectionnée ainsi :
 
 À l’ouverture, alaTool vérifie le volume T en y créant puis supprimant un petit
 fichier temporaire. Si cette écriture échoue, notamment sur un volume en lecture
-seule, le dossier Documents est utilisé. L’arborescence Nextcloud est également
+seule, le dossier Documents est utilisé. Ce contrôle est limité à environ 1,5
+seconde pour qu’un lecteur réseau défaillant ne bloque pas le lancement.
+L’arborescence Nextcloud est également
 chargée en arrière-plan dès le lancement pour accélérer l’ouverture des catégories.
 
 ## Lancer le prototype

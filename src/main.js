@@ -120,6 +120,20 @@ async function canWriteTo(folderPath) {
   }
 }
 
+async function canWriteWithin(folderPath, timeout = 1500) {
+  let timer = null;
+  try {
+    return await Promise.race([
+      canWriteTo(folderPath),
+      new Promise((resolve) => {
+        timer = setTimeout(() => resolve(false), timeout);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 async function destinationInfo() {
   let preferred = null;
   if (process.platform === "win32") {
@@ -131,7 +145,7 @@ async function destinationInfo() {
   }
 
   if (preferred && fs.existsSync(preferred)) {
-    if (await canWriteTo(preferred)) {
+    if (await canWriteWithin(preferred)) {
       return { path: preferred, fallback: false };
     }
     return {

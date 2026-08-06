@@ -11,9 +11,7 @@ let modalPaths = new Set();
 let modalDirty = false;
 
 const categories = ["LED", "Captation", "Divers", "Switcher", "Média Serveur"];
-const categorySelections = new Map([
-  ["Divers", { mode: "all", paths: [] }],
-]);
+const categorySelections = new Map();
 
 const $ = (id) => document.getElementById(id);
 const wait = (duration) => new Promise((resolve) => setTimeout(resolve, duration));
@@ -361,7 +359,7 @@ async function startSync() {
   try {
     const scan = await ensureScan();
     if (cancelled) return;
-    selectedFiles = scan.files.filter((file) =>
+    const categoryFiles = scan.files.filter((file) =>
       fileIsSelected(
         file,
         selections,
@@ -369,6 +367,10 @@ async function startSync() {
         scan.structured,
       ),
     );
+    const globalIncludedFiles = scan.files.filter(
+      (file) => file.path.split(/[\\/]/)[0]?.normalize("NFC") === "_Inclus",
+    );
+    selectedFiles = [...categoryFiles, ...globalIncludedFiles];
     const selectedSources = scan.structured
       ? [
           ...new Set(
@@ -444,6 +446,7 @@ async function startSync() {
       structured: scan.structured,
       sources: selectedSources,
       includedFolders,
+      globalIncluded: globalIncludedFiles.length > 0,
     });
     if (cancelled) return;
 

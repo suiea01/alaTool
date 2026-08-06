@@ -331,7 +331,21 @@ ipcMain.handle("sync:run", async (event, request) => {
     destination: path.join(request.destination, folder.category),
     filterArgs: [],
   }));
-  const phases = [...normalPhases, ...includedPhases];
+  const globalIncludedPhases = request?.globalIncluded
+    ? [
+        {
+          name: "Éléments inclus à la racine",
+          remote: ":webdav:_Inclus",
+          destination: request.destination,
+          filterArgs: [],
+        },
+      ]
+    : [];
+  const phases = [
+    ...normalPhases,
+    ...includedPhases,
+    ...globalIncludedPhases,
+  ];
 
   const parseStats = (line, callback) => {
     if (!line.trim()) return;

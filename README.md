@@ -5,7 +5,7 @@ Prototype d’une application de synchronisation des outils Alabama.
 ## Mode test Nextcloud
 
 L’application propose les catégories `ALL`, `LED`, `Captation`, `Divers`,
-`Switcher` et `Média Serveur`. `Divers` est sélectionné par défaut. Après
+`Switcher` et `Média Serveur`. Aucune catégorie n’est sélectionnée par défaut. Après
 validation, elle copie uniquement les dossiers choisis depuis le partage public
 Nextcloud configuré dans `config/runtime.json`.
 
@@ -72,6 +72,10 @@ Commun/
 Le dossier `_Inclus` est uniquement technique : il n’est pas recréé dans la
 destination. Dans cet exemple, son contenu arrive directement dans `LED/Mire/` et
 `LED/mire-reference.jpg`.
+
+Un dossier `_Inclus` placé à la racine du partage est global : son contenu est
+toujours fusionné directement à la racine de la destination dès qu’un téléchargement
+est lancé. Il convient aux fichiers et dossiers nécessaires dans tous les cas.
 
 La destination est sélectionnée ainsi :
 

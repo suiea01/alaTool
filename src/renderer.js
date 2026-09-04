@@ -9,6 +9,7 @@ let scanPromise = null;
 let modalCategory = null;
 let modalPaths = new Set();
 let modalDirty = false;
+const collapsedFolders = new Map();
 
 const categories = ["LED", "Captation", "Divers", "Switcher", "Média Serveur"];
 const categorySelections = new Map();
@@ -162,6 +163,8 @@ function folderNodeElement(node, parentPath = "", pathOverride = null) {
   const folderPath = pathOverride ?? (parentPath ? `${parentPath}/${node.name}` : node.name);
   const wrapper = document.createElement("div");
   wrapper.className = "folder-node";
+  const categoryCollapsed = collapsedFolders.get(modalCategory) || new Set();
+  wrapper.classList.toggle("collapsed", categoryCollapsed.has(folderPath));
 
   const row = document.createElement("div");
   row.className = "folder-row";
@@ -171,7 +174,15 @@ function folderNodeElement(node, parentPath = "", pathOverride = null) {
     toggle.className = "folder-toggle";
     toggle.textContent = "▾";
     toggle.setAttribute("aria-label", `Afficher ou masquer ${node.name}`);
-    toggle.addEventListener("click", () => wrapper.classList.toggle("collapsed"));
+    toggle.addEventListener("click", () => {
+      wrapper.classList.toggle("collapsed");
+      if (!collapsedFolders.has(modalCategory)) {
+        collapsedFolders.set(modalCategory, new Set());
+      }
+      const storedFolders = collapsedFolders.get(modalCategory);
+      if (wrapper.classList.contains("collapsed")) storedFolders.add(folderPath);
+      else storedFolders.delete(folderPath);
+    });
     row.append(toggle);
   } else {
     const spacer = document.createElement("span");
@@ -313,6 +324,7 @@ function showSelection() {
   $("openButton").classList.add("hidden");
   $("retryButton").classList.add("hidden");
   $("selectionError").classList.add("hidden");
+  $("destinationButton").disabled = false;
   renderCategoryStates();
 }
 
@@ -332,6 +344,7 @@ function setRunningState(categories, platform) {
   $("cancelButton").classList.remove("hidden");
   $("openButton").classList.add("hidden");
   $("retryButton").classList.add("hidden");
+  $("destinationButton").disabled = true;
   $("logList").replaceChildren();
   $("fileName").textContent = "Lecture du dossier distant";
   $("fileCount").textContent = "Analyse en cours…";
@@ -418,6 +431,7 @@ async function startSync() {
       $("statusMark").classList.add("visible");
       $("cancelButton").classList.add("hidden");
       $("retryButton").classList.remove("hidden");
+      $("destinationButton").disabled = false;
       log("Aucun fichier trouvé dans la sélection");
       return;
     }
@@ -462,6 +476,7 @@ async function startSync() {
     $("cancelButton").classList.add("hidden");
     $("openButton").classList.remove("hidden");
     $("retryButton").classList.remove("hidden");
+    $("destinationButton").disabled = false;
     log("Téléchargement et contrôle terminés");
   } catch (error) {
     if (cancelled) return;
@@ -473,6 +488,7 @@ async function startSync() {
     $("fileName").textContent = "Une erreur est survenue";
     $("cancelButton").classList.add("hidden");
     $("retryButton").classList.remove("hidden");
+    $("destinationButton").disabled = false;
     log(error.message || String(error));
   }
 }
@@ -488,6 +504,7 @@ async function cancelSync() {
   $("fileName").textContent = "Opération interrompue";
   $("cancelButton").classList.add("hidden");
   $("retryButton").classList.remove("hidden");
+  $("destinationButton").disabled = false;
   log("Annulation demandée");
 }
 
@@ -503,6 +520,19 @@ async function init() {
     : destination.fallbackReason === "read-only"
       ? "Le volume T est en lecture seule : dossier Documents utilisé."
       : "Le volume T n’est pas disponible : dossier Documents utilisé.";
+
+  $("destinationButton").addEventListener("click", async () => {
+    try {
+      const selectedDestination = await window.alaTool.chooseDestination();
+      if (!selectedDestination) return;
+      destination = selectedDestination;
+      $("destinationPath").textContent = destination.path;
+      $("fallbackNote").textContent = "Dossier choisi manuellement.";
+    } catch (error) {
+      $("fallbackNote").textContent =
+        error.message || "Impossible d’utiliser ce dossier.";
+    }
+  });
 
   initialScan.then(() => {
     // L’analyse est conservée en mémoire pour les prochains clics.
@@ -609,9 +639,13 @@ async function init() {
   $("startButton").addEventListener("click", startSync);
   $("cancelButton").addEventListener("click", cancelSync);
   $("retryButton").addEventListener("click", showSelection);
-  $("openButton").addEventListener("click", () =>
-    window.alaTool.openFolder(destination.path),
-  );
+  $("openButton").addEventListener("click", async () => {
+    try {
+      await window.alaTool.openFolder(destination.path);
+    } catch (error) {
+      log(error.message || "Impossible d’ouvrir le dossier.");
+    }
+  });
   $("detailsButton").addEventListener("click", () => {
     const panel = $("detailsPanel");
     panel.classList.toggle("hidden");

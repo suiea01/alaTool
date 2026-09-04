@@ -1,4 +1,11 @@
-const { app, BrowserWindow, ipcMain, nativeTheme, shell } = require("electron");
+const {
+  app,
+  BrowserWindow,
+  dialog,
+  ipcMain,
+  nativeTheme,
+  shell,
+} = require("electron");
 const { spawn } = require("child_process");
 const path = require("path");
 const fs = require("fs");
@@ -188,6 +195,24 @@ function createWindow() {
 }
 
 ipcMain.handle("destination:get", () => destinationInfo());
+ipcMain.handle("destination:choose", async (event) => {
+  const parentWindow = BrowserWindow.fromWebContents(event.sender);
+  const result = await dialog.showOpenDialog(parentWindow, {
+    title: "Choisir le dossier de téléchargement",
+    buttonLabel: "Choisir ce dossier",
+    properties: ["openDirectory", "createDirectory"],
+  });
+  if (result.canceled || !result.filePaths[0]) return null;
+  const selectedPath = result.filePaths[0];
+  if (!(await canWriteWithin(selectedPath))) {
+    throw new Error("Ce dossier n’est pas accessible en écriture.");
+  }
+  return {
+    path: selectedPath,
+    fallback: false,
+    custom: true,
+  };
+});
 ipcMain.handle("server:get", () => {
   const config = loadRuntimeConfig();
   return {
@@ -497,7 +522,24 @@ ipcMain.handle("sync:cancel", () => {
 });
 ipcMain.handle("folder:open", async (_event, folderPath) => {
   await fs.promises.mkdir(folderPath, { recursive: true });
-  return shell.openPath(folderPath);
+  const error = await shell.openPath(folderPath);
+  if (!error) return "";
+  if (process.platform === "win32") {
+    await new Promise((resolve, reject) => {
+      const explorer = spawn("explorer.exe", [path.win32.normalize(folderPath)], {
+        detached: true,
+        stdio: "ignore",
+        windowsHide: false,
+      });
+      explorer.once("spawn", () => {
+        explorer.unref();
+        resolve();
+      });
+      explorer.once("error", reject);
+    });
+    return "";
+  }
+  throw new Error(error);
 });
 
 app.whenReady().then(() => {

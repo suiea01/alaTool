@@ -2,6 +2,7 @@ const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("alaTool", {
   getDestination: () => ipcRenderer.invoke("destination:get"),
+  chooseDestination: () => ipcRenderer.invoke("destination:choose"),
   getServer: () => ipcRenderer.invoke("server:get"),
   scan: () => ipcRenderer.invoke("sync:scan"),
   sync: (request) => ipcRenderer.invoke("sync:run", request),

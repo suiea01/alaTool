@@ -88,6 +88,11 @@ seule, le dossier Documents est utilisé. Ce contrôle est limité à environ 1,
 seconde pour qu’un lecteur réseau défaillant ne bloque pas le lancement.
 L’arborescence Nextcloud est également
 chargée en arrière-plan dès le lancement pour accélérer l’ouverture des catégories.
+La destination proposée peut être remplacée avec le bouton `Modifier`. Le dossier
+choisi est lui aussi contrôlé en écriture avant d’être accepté.
+Les dossiers repliés dans la sélection personnalisée restent repliés lorsque les
+cases sont modifiées. Sous Windows, l’ouverture de la destination utilise
+l’Explorateur de fichiers comme solution de secours.
 
 ## Lancer le prototype
 

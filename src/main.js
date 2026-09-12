@@ -169,6 +169,32 @@ async function destinationInfo() {
   };
 }
 
+async function existingStoragePath(folderPath) {
+  let candidate = path.resolve(folderPath);
+  while (true) {
+    try {
+      const stats = await fs.promises.stat(candidate);
+      return stats.isDirectory() ? candidate : path.dirname(candidate);
+    } catch {
+      const parent = path.dirname(candidate);
+      if (parent === candidate) throw new Error("Destination inaccessible.");
+      candidate = parent;
+    }
+  }
+}
+
+function formatStorageBytes(bytes) {
+  const units = ["octets", "Ko", "Mo", "Go", "To"];
+  if (!bytes) return "0 octet";
+  const index = Math.min(
+    Math.floor(Math.log(bytes) / Math.log(1024)),
+    units.length - 1,
+  );
+  return `${(bytes / 1024 ** index).toLocaleString("fr-FR", {
+    maximumFractionDigits: 1,
+  })} ${units[index]}`;
+}
+
 function createWindow() {
   const initialHeight = process.platform === "win32" ? 680 : 670;
   const window = new BrowserWindow({
@@ -212,6 +238,45 @@ ipcMain.handle("destination:choose", async (event) => {
     fallback: false,
     custom: true,
   };
+});
+ipcMain.handle("storage:check", async (event, request) => {
+  const parentWindow = BrowserWindow.fromWebContents(event.sender);
+  const requiredBytes = Math.max(0, Number(request?.requiredBytes) || 0);
+  const safetyBytes = Math.max(100 * 1024 ** 2, requiredBytes * 0.05);
+  try {
+    const storagePath = await existingStoragePath(request?.destination);
+    const stats = await fs.promises.statfs(storagePath, { bigint: true });
+    const availableBytes = Number(stats.bavail * stats.bsize);
+    const minimumBytes = requiredBytes + safetyBytes;
+    if (availableBytes >= minimumBytes) {
+      return { ok: true, availableBytes, requiredBytes, safetyBytes };
+    }
+    await dialog.showMessageBox(parentWindow, {
+      type: "warning",
+      title: "Espace disque insuffisant",
+      message: "Le téléchargement ne peut pas démarrer.",
+      detail:
+        `Éléments sélectionnés : ${formatStorageBytes(requiredBytes)}\n` +
+        `Espace disponible : ${formatStorageBytes(availableBytes)}\n` +
+        `Marge de sécurité : ${formatStorageBytes(safetyBytes)}\n\n` +
+        "Libérez de l’espace ou choisissez un autre dossier de téléchargement.",
+      buttons: ["OK"],
+      defaultId: 0,
+    });
+    return { ok: false, availableBytes, requiredBytes, safetyBytes };
+  } catch (error) {
+    await dialog.showMessageBox(parentWindow, {
+      type: "warning",
+      title: "Espace disque impossible à vérifier",
+      message: "Le téléchargement ne peut pas démarrer.",
+      detail:
+        "alaTool n’a pas pu vérifier l’espace disponible sur la destination. " +
+        "Choisissez un autre dossier puis réessayez.",
+      buttons: ["OK"],
+      defaultId: 0,
+    });
+    return { ok: false, error: error.message };
+  }
 });
 ipcMain.handle("server:get", () => {
   const config = loadRuntimeConfig();

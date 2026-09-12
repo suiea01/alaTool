@@ -93,6 +93,10 @@ choisi est lui aussi contrôlé en écriture avant d’être accepté.
 Les dossiers repliés dans la sélection personnalisée restent repliés lorsque les
 cases sont modifiées. Sous Windows, l’ouverture de la destination utilise
 l’Explorateur de fichiers comme solution de secours.
+Avant chaque téléchargement, alaTool compare la taille des éléments sélectionnés à
+l’espace disponible sur la destination, avec une marge de sécurité de 5 % et au
+minimum 100 Mo. Si l’espace est insuffisant ou ne peut pas être vérifié, une alerte
+bloque le téléchargement afin d’éviter une copie incomplète.
 
 ## Lancer le prototype
 

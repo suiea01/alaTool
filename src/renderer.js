@@ -436,6 +436,20 @@ async function startSync() {
       return;
     }
 
+    const storageCheck = await window.alaTool.checkStorage({
+      destination: destination.path,
+      requiredBytes: selectedBytes,
+    });
+    if (!storageCheck.ok) {
+      log("Téléchargement bloqué : espace disponible insuffisant ou impossible à vérifier");
+      showSelection();
+      return;
+    }
+    log(
+      `Espace disponible vérifié : ${formatBytes(storageCheck.availableBytes)} ` +
+        `pour ${formatBytes(selectedBytes)} sélectionnés`,
+    );
+
     $("title").textContent = "Téléchargement des outils…";
     $("subtitle").textContent = "";
     $("subtitle").classList.add("hidden");

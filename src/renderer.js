@@ -99,6 +99,7 @@ function categoriesForPlatform(scan, platform) {
 function renderCategoryButtons() {
   const grid = $("categoryGrid");
   grid.replaceChildren();
+  grid.classList.toggle("dense", categories.length >= 7);
   if (!categories.length) {
     const empty = document.createElement("div");
     empty.className = "category-loading";
@@ -106,6 +107,7 @@ function renderCategoryButtons() {
       ? "Aucune catégorie disponible pour ce système."
       : "Analyse des catégories…";
     grid.append(empty);
+    requestAnimationFrame(fitWindowToContent);
     return;
   }
   ["ALL", ...categories].forEach((category) => {
@@ -120,6 +122,12 @@ function renderCategoryButtons() {
     button.append(label, status);
     grid.append(button);
   });
+  requestAnimationFrame(fitWindowToContent);
+}
+
+function fitWindowToContent() {
+  const height = document.documentElement.scrollHeight;
+  window.alaTool.fitWindow(height).catch(() => {});
 }
 
 function refreshCategories() {

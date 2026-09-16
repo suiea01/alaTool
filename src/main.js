@@ -4,6 +4,7 @@ const {
   dialog,
   ipcMain,
   nativeTheme,
+  screen,
   shell,
 } = require("electron");
 const { spawn } = require("child_process");
@@ -221,6 +222,21 @@ function createWindow() {
 }
 
 ipcMain.handle("destination:get", () => destinationInfo());
+ipcMain.handle("window:fit", (event, contentHeight) => {
+  const window = BrowserWindow.fromWebContents(event.sender);
+  if (!window || !Number.isFinite(contentHeight)) return;
+  const display = screen.getDisplayMatching(window.getBounds());
+  const maximumHeight = Math.min(900, display.workAreaSize.height - 32);
+  const targetHeight = Math.max(
+    650,
+    Math.min(Math.ceil(contentHeight), maximumHeight),
+  );
+  const [width, currentHeight] = window.getContentSize();
+  if (Math.abs(currentHeight - targetHeight) > 4) {
+    window.setContentSize(width, targetHeight, process.platform === "darwin");
+    window.center();
+  }
+});
 ipcMain.handle("destination:choose", async (event) => {
   const parentWindow = BrowserWindow.fromWebContents(event.sender);
   const result = await dialog.showOpenDialog(parentWindow, {

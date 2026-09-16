@@ -253,13 +253,11 @@ h1 {
 .category-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  max-height: 98px;
   gap: 10px;
-  padding-right: 3px;
-  overflow-x: hidden;
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--line) transparent;
+}
+
+.category-grid.dense {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .category-loading {
@@ -288,6 +286,10 @@ h1 {
   cursor: pointer;
   transition: 160ms ease;
   text-align: left;
+}
+
+.category-grid.dense .category-option {
+  padding-inline: 10px;
 }
 
 .category-option:hover {

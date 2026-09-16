@@ -14,4 +14,6 @@ contextBridge.exposeInMainWorld("alaTool", {
     return () => ipcRenderer.removeListener("sync:event", listener);
   },
   openFolder: (folderPath) => ipcRenderer.invoke("folder:open", folderPath),
+  fitWindow: (contentHeight) =>
+    ipcRenderer.invoke("window:fit", contentHeight),
 });

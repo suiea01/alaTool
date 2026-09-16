@@ -11,7 +11,7 @@ let modalPaths = new Set();
 let modalDirty = false;
 const collapsedFolders = new Map();
 
-const categories = ["LED", "Captation", "Divers", "Switcher", "Média Serveur"];
+let categories = [];
 const categorySelections = new Map();
 
 const $ = (id) => document.getElementById(id);
@@ -75,6 +75,63 @@ function selectionEntries() {
   });
 }
 
+function categoriesForPlatform(scan, platform) {
+  const names = new Map();
+  scan.files.forEach((file) => {
+    const parts = file.path.split(/[\\/]/);
+    const source = scan.structured ? parts[0]?.normalize("NFC") : null;
+    if (scan.structured && !["Commun", platform].includes(source)) return;
+    const category = (scan.structured ? parts[1] : parts[0])?.normalize("NFC");
+    if (
+      !category ||
+      ["_inclus", "all"].includes(category.toLocaleLowerCase("fr"))
+    ) {
+      return;
+    }
+    const key = category.toLocaleLowerCase("fr");
+    if (!names.has(key)) names.set(key, category);
+  });
+  return [...names.values()].sort((a, b) =>
+    a.localeCompare(b, "fr", { numeric: true, sensitivity: "base" }),
+  );
+}
+
+function renderCategoryButtons() {
+  const grid = $("categoryGrid");
+  grid.replaceChildren();
+  if (!categories.length) {
+    const empty = document.createElement("div");
+    empty.className = "category-loading";
+    empty.textContent = scanCache
+      ? "Aucune catégorie disponible pour ce système."
+      : "Analyse des catégories…";
+    grid.append(empty);
+    return;
+  }
+  ["ALL", ...categories].forEach((category) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `category-option${category === "ALL" ? " all-option" : ""}`;
+    button.dataset.category = category;
+    const label = document.createElement("span");
+    label.textContent = category;
+    const status = document.createElement("small");
+    status.className = "category-status";
+    button.append(label, status);
+    grid.append(button);
+  });
+}
+
+function refreshCategories() {
+  if (!scanCache || !server) return;
+  const platform =
+    document.querySelector('input[name="platform"]:checked')?.value ||
+    server.defaultPlatform;
+  categories = categoriesForPlatform(scanCache, platform);
+  renderCategoryButtons();
+  renderCategoryStates();
+}
+
 function fileIsSelected(file, selections, platform, structured) {
   const parts = file.path.split(/[\\/]/);
   const source = parts[0]?.normalize("NFC");
@@ -97,25 +154,30 @@ function fileIsSelected(file, selections, platform, structured) {
 }
 
 function renderCategoryStates() {
-  const allComplete = categories.every(
+  const allComplete = categories.length > 0 && categories.every(
     (category) => categorySelections.get(category)?.mode === "all",
   );
-  const hasSelection = categorySelections.size > 0;
+  const hasSelection = categories.some((category) =>
+    categorySelections.has(category),
+  );
   const allButton = document.querySelector('[data-category="ALL"]');
+  if (!allButton) return;
   allButton.classList.toggle("selected", allComplete);
   allButton.classList.toggle("partial", !allComplete && hasSelection);
-  $("status-ALL").textContent = allComplete
+  allButton.querySelector(".category-status").textContent = allComplete
     ? "Tout sélectionné"
     : hasSelection
       ? "Sélection active"
       : "Tout sélectionner";
 
   categories.forEach((category) => {
-    const button = document.querySelector(`[data-category="${category}"]`);
+    const button = [...document.querySelectorAll("[data-category]")].find(
+      (item) => item.dataset.category === category,
+    );
     const selection = categorySelections.get(category);
     button.classList.toggle("selected", selection?.mode === "all");
     button.classList.toggle("partial", selection?.mode === "partial");
-    $(`status-${category}`).textContent = !selection
+    button.querySelector(".category-status").textContent = !selection
       ? "Non sélectionné"
       : selection.mode === "all"
         ? "Tout le dossier"
@@ -548,8 +610,8 @@ async function init() {
     }
   });
 
-  initialScan.then(() => {
-    // L’analyse est conservée en mémoire pour les prochains clics.
+  initialScan.then((scan) => {
+    if (scan) refreshCategories();
   });
 
   window.alaTool.onSyncEvent((event) => {
@@ -602,25 +664,25 @@ async function init() {
     }
   });
 
-  document.querySelectorAll("[data-category]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const category = button.dataset.category;
-      if (category === "ALL") {
-        const allComplete = categories.every(
-          (item) => categorySelections.get(item)?.mode === "all",
+  $("categoryGrid").addEventListener("click", (event) => {
+    const button = event.target.closest("[data-category]");
+    if (!button) return;
+    const category = button.dataset.category;
+    if (category === "ALL") {
+      const allComplete = categories.every(
+        (item) => categorySelections.get(item)?.mode === "all",
+      );
+      categories.forEach((item) => categorySelections.delete(item));
+      if (!allComplete) {
+        categories.forEach((item) =>
+          categorySelections.set(item, { mode: "all", paths: [] }),
         );
-        categorySelections.clear();
-        if (!allComplete) {
-          categories.forEach((item) =>
-            categorySelections.set(item, { mode: "all", paths: [] }),
-          );
-        }
-        renderCategoryStates();
-        $("selectionError").classList.add("hidden");
-        return;
       }
-      openCategoryModal(category);
-    });
+      renderCategoryStates();
+      $("selectionError").classList.add("hidden");
+      return;
+    }
+    openCategoryModal(category);
   });
 
   document.querySelectorAll('input[name="selectionMode"]').forEach((input) => {
@@ -649,6 +711,9 @@ async function init() {
     `input[name="platform"][value="${server.defaultPlatform}"]`,
   );
   if (defaultPlatform) defaultPlatform.checked = true;
+  document.querySelectorAll('input[name="platform"]').forEach((input) => {
+    input.addEventListener("change", refreshCategories);
+  });
 
   $("startButton").addEventListener("click", startSync);
   $("cancelButton").addEventListener("click", cancelSync);

@@ -4,17 +4,20 @@ Prototype d’une application de synchronisation des outils Alabama.
 
 ## Mode test Nextcloud
 
-L’application propose les catégories `ALL`, `LED`, `Captation`, `Divers`,
-`Switcher` et `Média Serveur`. Aucune catégorie n’est sélectionnée par défaut. Après
-validation, elle copie uniquement les dossiers choisis depuis le partage public
-Nextcloud configuré dans `config/runtime.json`.
+L’application détecte automatiquement les catégories présentes sur Nextcloud.
+Elle réunit celles de `Commun` avec celles du système choisi, les classe par ordre
+alphabétique et conserve `ALL` comme commande globale. Une nouvelle catégorie
+contenant au moins un fichier apparaît donc sans nouvelle version d’alaTool.
+Aucune catégorie n’est sélectionnée par défaut. Après validation, l’application
+copie uniquement les dossiers choisis depuis le partage public Nextcloud configuré
+dans `config/runtime.json`.
 
 Le système de la machine (`Windows` ou `Mac`) est présélectionné et reste
 modifiable dans l’interface. Pour chaque catégorie, l’application copie d’abord
 les fichiers de `Commun`, puis ceux du système choisi. Les deux sources sont
 réunies dans le même dossier local.
 
-L’arborescence Nextcloud attendue est :
+Exemple d’arborescence Nextcloud :
 
 ```text
 Commun/
@@ -36,6 +39,10 @@ Mac/
   Switcher/
   Média Serveur/
 ```
+
+Pour garder l’écran compact, les catégories sont affichées sur trois colonnes dans
+une zone haute de deux lignes. Un défilement vertical discret apparaît uniquement
+si davantage de catégories sont disponibles.
 
 Pendant la migration, si aucun dossier `Commun`, `Windows` ou `Mac` n’est
 détecté, alaTool conserve automatiquement le fonctionnement de l’ancienne

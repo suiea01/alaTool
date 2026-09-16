@@ -60,25 +60,8 @@
 
         <fieldset class="category-block" id="categoryBlock">
           <legend>Catégories disponibles</legend>
-          <div class="category-grid">
-            <button class="category-option all-option" data-category="ALL">
-              <span>ALL</span><small id="status-ALL">Tout sélectionner</small>
-            </button>
-            <button class="category-option" data-category="LED">
-              <span>LED</span><small id="status-LED">Non sélectionné</small>
-            </button>
-            <button class="category-option" data-category="Captation">
-              <span>Captation</span><small id="status-Captation">Non sélectionné</small>
-            </button>
-            <button class="category-option" data-category="Divers">
-              <span>Divers</span><small id="status-Divers">Non sélectionné</small>
-            </button>
-            <button class="category-option" data-category="Switcher">
-              <span>Switcher</span><small id="status-Switcher">Non sélectionné</small>
-            </button>
-            <button class="category-option" data-category="Média Serveur">
-              <span>Média Serveur</span><small id="status-Média Serveur">Non sélectionné</small>
-            </button>
+          <div class="category-grid" id="categoryGrid">
+            <div class="category-loading">Analyse des catégories…</div>
           </div>
           <p class="selection-error hidden" id="selectionError">
             Sélectionnez au moins une catégorie.

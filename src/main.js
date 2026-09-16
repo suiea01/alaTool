@@ -315,13 +315,20 @@ ipcMain.handle("sync:scan", async () => {
 });
 ipcMain.handle("sync:run", async (event, request) => {
   const config = loadRuntimeConfig();
-  const allowedCategories = [
-    "LED",
-    "Captation",
-    "Divers",
-    "Switcher",
-    "Média Serveur",
-  ];
+  const normalizeCategory = (category) => {
+    if (typeof category !== "string") return null;
+    const normalized = category.normalize("NFC").trim();
+    if (
+      !normalized ||
+      /[\\/\0-\x1f*?\[\]{}]/u.test(normalized) ||
+      [".", "..", "all", "_inclus", "commun", "windows", "mac"].includes(
+        normalized.toLocaleLowerCase("fr"),
+      )
+    ) {
+      return null;
+    }
+    return normalized;
+  };
   const requestedCategories = Array.isArray(request?.categories)
     ? request.categories
     : [];
@@ -334,9 +341,8 @@ ipcMain.handle("sync:run", async (event, request) => {
     ? request.selections
     : [];
   const selections = requestedSelections
-    .filter((selection) => allowedCategories.includes(selection?.category))
     .map((selection) => ({
-      category: selection.category,
+      category: normalizeCategory(selection?.category),
       paths:
         selection.paths === null
           ? null
@@ -355,13 +361,14 @@ ipcMain.handle("sync:run", async (event, request) => {
                 .filter(Boolean)
             : [],
     }))
-    .filter((selection) => selection.paths === null || selection.paths.length);
-  const legacyAllSelected = requestedCategories.includes("ALL");
-  const legacyCategories = legacyAllSelected
-    ? allowedCategories
-    : requestedCategories.filter((category) =>
-        allowedCategories.includes(category),
-      );
+    .filter(
+      (selection) =>
+        selection.category &&
+        (selection.paths === null || selection.paths.length),
+    );
+  const legacyCategories = requestedCategories
+    .map(normalizeCategory)
+    .filter(Boolean);
   const effectiveSelections = selections.length
     ? selections
     : legacyCategories.map((category) => ({ category, paths: null }));
@@ -409,7 +416,7 @@ ipcMain.handle("sync:run", async (event, request) => {
   const includedFolders = Array.isArray(request?.includedFolders)
     ? request.includedFolders.filter(
         (folder) =>
-          allowedCategories.includes(folder?.category) &&
+          categories.includes(normalizeCategory(folder?.category)) &&
           (!request?.structured || allowedSources.includes(folder?.source)),
       )
     : [];

@@ -608,26 +608,39 @@ ipcMain.handle("sync:cancel", () => {
   activeTransfer.kill();
   return true;
 });
-ipcMain.handle("folder:open", async (_event, folderPath) => {
-  await fs.promises.mkdir(folderPath, { recursive: true });
-  const error = await shell.openPath(folderPath);
-  if (!error) return "";
-  if (process.platform === "win32") {
-    await new Promise((resolve, reject) => {
-      const explorer = spawn("explorer.exe", [path.win32.normalize(folderPath)], {
-        detached: true,
-        stdio: "ignore",
-        windowsHide: false,
+ipcMain.handle("folder:open", async (event, folderPath) => {
+  try {
+    if (typeof folderPath !== "string" || !path.isAbsolute(folderPath)) {
+      throw new Error("Le chemin du dossier est invalide.");
+    }
+    await fs.promises.access(folderPath);
+    if (process.platform === "win32") {
+      await new Promise((resolve, reject) => {
+        const explorer = spawn("explorer.exe", [path.win32.normalize(folderPath)], {
+          detached: true,
+          stdio: "ignore",
+          windowsHide: false,
+        });
+        explorer.once("spawn", () => {
+          explorer.unref();
+          resolve();
+        });
+        explorer.once("error", reject);
       });
-      explorer.once("spawn", () => {
-        explorer.unref();
-        resolve();
-      });
-      explorer.once("error", reject);
+      return "";
+    }
+    const error = await shell.openPath(folderPath);
+    if (!error) return "";
+    throw new Error(error);
+  } catch (error) {
+    await dialog.showMessageBox(BrowserWindow.fromWebContents(event.sender), {
+      type: "error",
+      title: "Impossible d’ouvrir le dossier",
+      message: "Le dossier n’a pas pu être ouvert.",
+      detail: `${folderPath || ""}\n${error.message}`,
     });
-    return "";
+    throw error;
   }
-  throw new Error(error);
 });
 
 app.whenReady().then(() => {
